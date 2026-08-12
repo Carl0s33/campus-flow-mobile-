@@ -1,6 +1,3 @@
-
-
-```markdown
 # 📱 CampusFlow
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -19,6 +16,16 @@ Este projeto é parte do Trabalho de Conclusão de Curso (TCC) focado na melhori
 **O Problema:** Estudantes utilizam diversas ferramentas fragmentadas para gerenciar sua vida acadêmica (portal da faculdade, Google Calendar, planners de papel, grupos de WhatsApp). Essa fragmentação gera perda de prazos, ansiedade e dificuldade em ter uma visão clara do dia.
 
 **A Solução:** Um aplicativo que centraliza a grade horária, os prazos de trabalhos e as datas de provas em uma única tela inteligente, que se adapta ao momento atual do aluno.
+
+---
+
+## 📸 Screenshots
+
+*(Adicione aqui algumas imagens ou um GIF do seu aplicativo rodando. Exemplo de código abaixo:)*
+<!-- <div style="display: flex; gap: 10px;">
+  <img src="./assets/print-tela-inicial.png" width="200">
+  <img src="./assets/print-materias.png" width="200">
+</div> -->
 
 ---
 
@@ -55,64 +62,5 @@ Certifique-se de ter instalado em sua máquina:
 ### 2. Clonando o repositório
 Abra o terminal e execute:
 ```bash
-git clone [https://github.com/SEU_USUARIO/campus-flow.git](https://github.com/SEU_USUARIO/campus-flow.git)
+git clone [https://github.com/Carl0s33/campus-flow.git](https://github.com/Carl0s33/campus-flow.git)
 cd campus-flow
-
-```
-
-### 3. Instalando as dependências
-
-```bash
-npm install
-
-```
-
-### 4. Rodando o aplicativo
-
-```bash
-npx expo start
-
-```
-
-Após executar este comando, um QR Code aparecerá no terminal.
-
-* **No celular:** Abra o app Expo Go e escaneie o QR Code.
-* **No PC:** Pressione `a` para abrir no emulador Android ou `i` para o simulador iOS.
-
----
-
-## 📂 Arquitetura do Projeto
-
-O projeto está organizado da seguinte forma:
-
-```text
-campus-flow/
-│
-├── app/                  # Rotas e Telas do aplicativo (Expo Router)
-├── components/           # Componentes visuais reutilizáveis (Cards, Botões)
-├── database/             # Configurações do SQLite, queries e repositórios
-├── types/                # Definições de tipagem do TypeScript
-├── utils/                # Funções auxiliares e formatação de dados
-└── assets/               # Imagens, ícones e fontes
-
-```
-
----
-
-## 📊 Pesquisa e Avaliação (TCC)
-
-Como parte da pesquisa acadêmica, o CampusFlow será avaliado por um grupo focal de estudantes. A metodologia inclui a aplicação do questionário **SUS (System Usability Scale)** para medir quantitativamente a usabilidade da aplicação, além de análises qualitativas sobre a percepção de organização e redução de ansiedade com relação aos prazos acadêmicos.
-
----
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](https://www.google.com/search?q=LICENSE) para mais detalhes.
-
----
-
-*Desenvolvido com ☕ e muito código para o TCC.*
-
-```
-
-```
