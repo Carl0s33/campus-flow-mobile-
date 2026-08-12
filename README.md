@@ -1,6 +1,4 @@
-Com certeza! Ter um `README.md` bem estruturado é o cartão de visitas do seu repositório, especialmente para um projeto de TCC. Ele mostra profissionalismo e organização para quem for avaliar seu código.
 
-Copie todo o conteúdo abaixo e cole dentro do arquivo `README.md` na raiz do seu projeto (se o arquivo não existir, é só criar).
 
 ```markdown
 # 📱 CampusFlow
