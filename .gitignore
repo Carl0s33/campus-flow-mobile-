@@ -47,6 +47,11 @@ Thumbs.db
 *.sln
 *.sw?
 
+# Agent & AI instructions
+.claude/
+AGENTS.md
+CLAUDE.md
+
 # environment variables & secrets
 .env
 .env.local
