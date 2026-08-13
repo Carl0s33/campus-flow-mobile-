@@ -1,6 +1,7 @@
 export interface Discipline {
   id: string;
   name: string;
+  code?: string;
   teacher?: string;
   color: string;
   absences: number;
