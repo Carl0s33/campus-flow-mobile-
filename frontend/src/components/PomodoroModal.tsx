@@ -22,7 +22,7 @@ export default function PomodoroModal({ visible, onClose, taskTitle }: PomodoroM
   const [isBreak, setIsBreak] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
@@ -33,7 +33,9 @@ export default function PomodoroModal({ visible, onClose, taskTitle }: PomodoroM
       setTimeLeft(!isBreak ? BREAK_TIME : POMODORO_TIME);
       setIsRunning(false);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isRunning, timeLeft, isBreak]);
 
   const toggleTimer = () => setIsRunning(!isRunning);

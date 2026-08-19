@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Discipline, Schedule, Task, Exam } from '@/types/campus';
+import { disciplineApi, scheduleApi, taskApi, examApi, DisciplineDTO, TaskDTO, ExamDTO, ScheduleDTO } from '@/services/api';
 
 interface CampusState {
   userName: string;
@@ -8,190 +9,380 @@ interface CampusState {
   schedules: Schedule[];
   tasks: Task[];
   exams: Exam[];
-  addDiscipline: (discipline: Discipline) => void;
-  removeDiscipline: (id: string) => void;
-  setGrade: (id: string, n1?: number, n2?: number) => void;
-  incrementAbsence: (id: string) => void;
-  decrementAbsence: (id: string) => void;
-  addSchedule: (schedule: Schedule) => void;
-  removeSchedule: (id: string) => void;
-  addTask: (task: Task) => void;
-  toggleTask: (id: string) => void;
-  removeTask: (id: string) => void;
-  addExam: (exam: Exam) => void;
-  removeExam: (id: string) => void;
+  isLoading: boolean;
+  isSyncing: boolean;
+  error: string | null;
+  
+  // Ações de sincronização
+  fetchData: () => Promise<void>;
+  
+  // Ações de Disciplina
+  addDiscipline: (discipline: Omit<Discipline, 'id'> & { id?: string }) => Promise<Discipline | undefined>;
+  updateDiscipline: (id: string, data: Partial<Discipline>) => Promise<Discipline | undefined>;
+  removeDiscipline: (id: string) => Promise<void>;
+  setGrade: (id: string, n1?: number, n2?: number) => Promise<void>;
+  incrementAbsence: (id: string) => Promise<void>;
+  decrementAbsence: (id: string) => Promise<void>;
+  
+  // Ações de Horário
+  addSchedule: (schedule: Omit<Schedule, 'id'> & { id?: string }) => Promise<Schedule | undefined>;
+  removeSchedule: (id: string) => Promise<void>;
+  
+  // Ações de Tarefas
+  addTask: (task: Omit<Task, 'id'> & { id?: string }) => Promise<Task | undefined>;
+  toggleTask: (id: string) => Promise<void>;
+  removeTask: (id: string) => Promise<void>;
+  
+  // Ações de Provas
+  addExam: (exam: Omit<Exam, 'id'> & { id?: string }) => Promise<Exam | undefined>;
+  removeExam: (id: string) => Promise<void>;
 }
 
-// 6 Cores Fortes, Marcantes e Vibrantes para cada Disciplina
-const INITIAL_DISCIPLINES: Discipline[] = [
-  {
-    id: 'd1',
-    name: 'Estrutura de Dados Não-Lineares',
-    code: 'TEC.0027',
-    teacher: 'Leandro Luttiane',
-    color: '#FBBF24', // 💛 Amarelo Ouro Vibrante
-    absences: 0,
-    workload: 60,
-  },
-  {
-    id: 'd2',
-    name: 'Teste de Software',
-    code: 'TEC.0030',
-    teacher: 'Mauricio Rabello',
-    color: '#34D399', // 💚 Verde Esmeralda Vibrante
-    absences: 1,
-    workload: 60,
-  },
-  {
-    id: 'd3',
-    name: 'Desenvolvimento de Sistemas Corporativos',
-    code: 'TEC.0028',
-    teacher: 'Eliezio Soares',
-    color: '#60A5FA', // 💙 Azul Vivo
-    absences: 0,
-    workload: 80,
-  },
-  {
-    id: 'd4',
-    name: 'Seminário de Orientação ao Projeto',
-    code: 'TEC.0034',
-    teacher: 'Eliezio Soares',
-    color: '#F472B6', // 🩷 Rosa Choque Matte
-    absences: 0,
-    workload: 40,
-  },
-  {
-    id: 'd5',
-    name: 'Sistemas Operacionais',
-    code: 'TEC.1010',
-    teacher: 'Ronaldo Junior',
-    color: '#A78BFA', // 💜 Roxo Violeta Vibrante
-    absences: 2,
-    workload: 60,
-  },
-  {
-    id: 'd6',
-    name: 'Gerência de Projetos',
-    code: 'TEC.0029',
-    teacher: 'Mauricio Rabello',
-    color: '#FB923C', // 🧡 Laranja Tangerina Vibrante
-    absences: 0,
-    workload: 60,
-  },
-];
+// Conversores de DTO para modelos de visualização do app
+function dtoToDiscipline(dto: DisciplineDTO): Discipline {
+  return {
+    id: dto.id || Date.now().toString(),
+    name: dto.name,
+    code: dto.code || undefined,
+    teacher: dto.teacher || undefined,
+    color: dto.color || '#60A5FA',
+    absences: dto.absences ?? 0,
+    workload: dto.workload ?? 60,
+    period: dto.period,
+    grades: (dto.n1 !== undefined || dto.n2 !== undefined) ? { n1: dto.n1, n2: dto.n2 } : undefined,
+  };
+}
 
-// Grade de Horários por Aulas Duplas do SUAP (2026.2)
-const INITIAL_SCHEDULES: Schedule[] = [
-  // Segunda-feira (1)
-  { id: 's1', disciplineId: 'd1', dayOfWeek: 1, startTime: '07:00', endTime: '08:30', room: 'Lab 04 - Bloco B' },
-  { id: 's2', disciplineId: 'd1', dayOfWeek: 1, startTime: '08:50', endTime: '10:20', room: 'Lab 04 - Bloco B' },
-  { id: 's3', disciplineId: 'd5', dayOfWeek: 1, startTime: '10:30', endTime: '12:00', room: 'Lab 01 - Bloco A' },
+function dtoToSchedule(dto: ScheduleDTO): Schedule {
+  return {
+    id: dto.id || Date.now().toString(),
+    disciplineId: dto.disciplineId,
+    dayOfWeek: dto.dayOfWeek,
+    startTime: dto.startTime,
+    endTime: dto.endTime,
+    room: dto.room || '',
+  };
+}
 
-  // Terça-feira (2)
-  { id: 's4', disciplineId: 'd6', dayOfWeek: 2, startTime: '07:00', endTime: '08:30', room: 'Sala 105' },
-  { id: 's5', disciplineId: 'd5', dayOfWeek: 2, startTime: '08:50', endTime: '10:20', room: 'Lab 01 - Bloco A' },
-  { id: 's6', disciplineId: 'd2', dayOfWeek: 2, startTime: '10:30', endTime: '12:00', room: 'Lab 03' },
+function dtoToTask(dto: TaskDTO): Task {
+  return {
+    id: dto.id || Date.now().toString(),
+    title: dto.title,
+    disciplineId: dto.disciplineId,
+    dueDate: dto.dueDate,
+    completed: Boolean(dto.completed),
+    type: (dto.type === 'trabalho' ? 'trabalho' : 'atividade') as 'trabalho' | 'atividade',
+  };
+}
 
-  // Quarta-feira (3)
-  { id: 's7', disciplineId: 'd6', dayOfWeek: 3, startTime: '07:00', endTime: '08:30', room: 'Sala 105' },
-  { id: 's8', disciplineId: 'd6', dayOfWeek: 3, startTime: '08:50', endTime: '10:20', room: 'Sala 105' },
-  { id: 's9', disciplineId: 'd2', dayOfWeek: 3, startTime: '10:30', endTime: '12:00', room: 'Lab 03' },
+function dtoToExam(dto: ExamDTO): Exam {
+  return {
+    id: dto.id || Date.now().toString(),
+    title: dto.title,
+    disciplineId: dto.disciplineId,
+    date: dto.date,
+    time: dto.time || '',
+    topics: dto.topics || undefined,
+  };
+}
 
-  // Quinta-feira (4)
-  { id: 's10', disciplineId: 'd3', dayOfWeek: 4, startTime: '07:00', endTime: '08:30', room: 'Lab 02 - Bloco A' },
-  { id: 's11', disciplineId: 'd3', dayOfWeek: 4, startTime: '08:50', endTime: '10:20', room: 'Lab 02 - Bloco A' },
+import { ALL_TADS_DISCIPLINES } from '@/constants/tadsDisciplines';
 
-  // Sexta-feira (5)
-  { id: 's12', disciplineId: 'd4', dayOfWeek: 5, startTime: '10:30', endTime: '12:00', room: 'Auditório 02' },
-];
-
-const INITIAL_TASKS: Task[] = [
-  {
-    id: 't1',
-    title: 'Implementação de Árvores AVL',
-    disciplineId: 'd1',
-    dueDate: '2026-08-20T23:59:00Z',
-    completed: false,
-    type: 'trabalho',
-  },
-  {
-    id: 't2',
-    title: 'Plano de Testes Unitários (Jest)',
-    disciplineId: 'd2',
-    dueDate: '2026-08-15T18:00:00Z',
-    completed: false,
-    type: 'trabalho',
-  },
-  {
-    id: 't3',
-    title: 'Arquitetura Spring Boot & Microserviços',
-    disciplineId: 'd3',
-    dueDate: '2026-08-19T22:00:00Z',
-    completed: false,
-    type: 'trabalho',
-  },
-  {
-    id: 't4',
-    title: 'Proposta do Projeto de Sistemas',
-    disciplineId: 'd4',
-    dueDate: '2026-08-22T12:00:00Z',
-    completed: false,
-    type: 'atividade',
-  },
-  {
-    id: 't5',
-    title: 'Estudo Dirigido: Escalonamento de Processos',
-    disciplineId: 'd5',
-    dueDate: '2026-08-25T10:00:00Z',
-    completed: false,
-    type: 'atividade',
-  },
-  {
-    id: 't6',
-    title: 'Cronograma EAP e Matriz RACI',
-    disciplineId: 'd6',
-    dueDate: '2026-08-28T23:59:00Z',
-    completed: false,
-    type: 'trabalho',
-  },
-];
-
-const INITIAL_EXAMS: Exam[] = [
-  {
-    id: 'e1',
-    title: 'Prova 1 - Estruturas Não Lineares',
-    disciplineId: 'd1',
-    date: '2026-08-23',
-    time: '08:50',
-    topics: 'Árvores AVL e Grafos',
-  }
-];
-
-export const useCampusStore = create<CampusState>((set) => ({
+export const useCampusStore = create<CampusState>((set, get) => ({
   userName: 'Carlos Eduardo',
   matricula: '20241134040016',
-  disciplines: INITIAL_DISCIPLINES,
-  schedules: INITIAL_SCHEDULES,
-  tasks: INITIAL_TASKS,
-  exams: INITIAL_EXAMS,
-  addDiscipline: (discipline) => set((state) => ({ disciplines: [...state.disciplines, discipline] })),
-  removeDiscipline: (id) => set((state) => ({ disciplines: state.disciplines.filter(d => d.id !== id) })),
-  setGrade: (id, n1, n2) => set((state) => ({
-    disciplines: state.disciplines.map(d => d.id === id ? { ...d, grades: { ...d.grades, n1: n1 ?? d.grades?.n1, n2: n2 ?? d.grades?.n2 } } : d)
-  })),
-  incrementAbsence: (id) => set((state) => ({
-    disciplines: state.disciplines.map(d => d.id === id ? { ...d, absences: d.absences + 1 } : d)
-  })),
-  decrementAbsence: (id) => set((state) => ({
-    disciplines: state.disciplines.map(d => d.id === id ? { ...d, absences: Math.max(0, d.absences - 1) } : d)
-  })),
-  addSchedule: (schedule) => set((state) => ({ schedules: [...state.schedules, schedule] })),
-  removeSchedule: (id) => set((state) => ({ schedules: state.schedules.filter(s => s.id !== id) })),
-  addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
-  toggleTask: (id) => set((state) => ({
-    tasks: state.tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
-  })),
-  removeTask: (id) => set((state) => ({ tasks: state.tasks.filter(t => t.id !== id) })),
-  addExam: (exam) => set((state) => ({ exams: [...state.exams, exam] })),
-  removeExam: (id) => set((state) => ({ exams: state.exams.filter(e => e.id !== id) })),
+  disciplines: ALL_TADS_DISCIPLINES,
+  schedules: [],
+  tasks: [],
+  exams: [],
+  isLoading: false,
+  isSyncing: false,
+  error: null,
+
+  fetchData: async () => {
+    set({ isSyncing: true, error: null });
+    try {
+      const [discRes, schedRes, taskRes, examRes] = await Promise.allSettled([
+        disciplineApi.getAll(),
+        scheduleApi.getAll(),
+        taskApi.getAll(),
+        examApi.getAll(),
+      ]);
+
+      set((state) => {
+        let mergedDisciplines = state.disciplines;
+        if (discRes.status === 'fulfilled' && discRes.value.length > 0) {
+          const fetched = discRes.value.map(dtoToDiscipline);
+          const fetchedMap = new Map(fetched.map(d => [d.id, d]));
+          // Mescla atualizações com a lista base
+          mergedDisciplines = ALL_TADS_DISCIPLINES.map(base => fetchedMap.get(base.id) || base);
+          // Adiciona disciplinas novas criadas pelo usuário
+          fetched.forEach(d => {
+            if (!mergedDisciplines.some(m => m.id === d.id)) {
+              mergedDisciplines.push(d);
+            }
+          });
+        }
+
+        return {
+          disciplines: mergedDisciplines,
+          schedules: schedRes.status === 'fulfilled'
+            ? schedRes.value.map(dtoToSchedule)
+            : state.schedules,
+          tasks: taskRes.status === 'fulfilled'
+            ? taskRes.value.map(dtoToTask)
+            : state.tasks,
+          exams: examRes.status === 'fulfilled'
+            ? examRes.value.map(dtoToExam)
+            : state.exams,
+          isSyncing: false,
+        };
+      });
+    } catch (err: any) {
+      console.warn('Erro ao conectar com backend:', err.message);
+      set({ isSyncing: false, error: err.message });
+    }
+  },
+
+  // -------------------------------------------------------------
+  // DISCIPLINAS
+  // -------------------------------------------------------------
+  addDiscipline: async (discipline) => {
+    try {
+      const created = await disciplineApi.create({
+        name: discipline.name,
+        code: discipline.code,
+        teacher: discipline.teacher,
+        color: discipline.color,
+        absences: discipline.absences || 0,
+        workload: discipline.workload || 60,
+        period: discipline.period,
+        n1: discipline.grades?.n1,
+        n2: discipline.grades?.n2,
+      });
+
+      const formatted = dtoToDiscipline(created);
+      set((state) => ({ disciplines: [...state.disciplines, formatted] }));
+      return formatted;
+    } catch (err: any) {
+      console.warn('Backend offline ou com erro, adicionando localmente:', err.message);
+      const localDiscipline: Discipline = {
+        ...discipline,
+        id: discipline.id || Date.now().toString(),
+        absences: discipline.absences || 0,
+        workload: discipline.workload || 60,
+      };
+      set((state) => ({ disciplines: [...state.disciplines, localDiscipline] }));
+      return localDiscipline;
+    }
+  },
+
+  updateDiscipline: async (id, data) => {
+    set((state) => ({
+      disciplines: state.disciplines.map(d => d.id === id ? { ...d, ...data } : d)
+    }));
+
+    try {
+      const current = get().disciplines.find(d => d.id === id);
+      const updated = await disciplineApi.update(id, {
+        name: data.name ?? current?.name ?? '',
+        code: data.code ?? current?.code,
+        teacher: data.teacher ?? current?.teacher,
+        color: data.color ?? current?.color,
+        absences: data.absences ?? current?.absences,
+        workload: data.workload ?? current?.workload,
+        period: data.period ?? current?.period,
+        n1: data.grades?.n1 ?? current?.grades?.n1,
+        n2: data.grades?.n2 ?? current?.grades?.n2,
+      });
+      const formatted = dtoToDiscipline(updated);
+      set((state) => ({
+        disciplines: state.disciplines.map(d => d.id === id ? formatted : d)
+      }));
+      return formatted;
+    } catch (err: any) {
+      console.warn('Erro ao atualizar disciplina no backend:', err.message);
+      return get().disciplines.find(d => d.id === id);
+    }
+  },
+
+  removeDiscipline: async (id) => {
+    // Atualização otimista
+    set((state) => ({
+      disciplines: state.disciplines.filter(d => d.id !== id),
+      schedules: state.schedules.filter(s => s.disciplineId !== id),
+      tasks: state.tasks.filter(t => t.disciplineId !== id),
+      exams: state.exams.filter(e => e.disciplineId !== id),
+    }));
+
+    try {
+      await disciplineApi.delete(id);
+    } catch (err: any) {
+      console.warn('Erro ao deletar disciplina no backend:', err.message);
+    }
+  },
+
+  setGrade: async (id, n1, n2) => {
+    set((state) => ({
+      disciplines: state.disciplines.map(d =>
+        d.id === id ? { ...d, grades: { ...d.grades, n1: n1 ?? d.grades?.n1, n2: n2 ?? d.grades?.n2 } } : d
+      )
+    }));
+
+    try {
+      await disciplineApi.updateGrades(id, n1, n2);
+    } catch (err: any) {
+      console.warn('Erro ao atualizar notas no backend:', err.message);
+    }
+  },
+
+  incrementAbsence: async (id) => {
+    const current = get().disciplines.find(d => d.id === id);
+    const newAbsences = (current?.absences ?? 0) + 1;
+
+    set((state) => ({
+      disciplines: state.disciplines.map(d => d.id === id ? { ...d, absences: newAbsences } : d)
+    }));
+
+    try {
+      await disciplineApi.updateAbsences(id, newAbsences);
+    } catch (err: any) {
+      console.warn('Erro ao atualizar faltas no backend:', err.message);
+    }
+  },
+
+  decrementAbsence: async (id) => {
+    const current = get().disciplines.find(d => d.id === id);
+    const newAbsences = Math.max(0, (current?.absences ?? 0) - 1);
+
+    set((state) => ({
+      disciplines: state.disciplines.map(d => d.id === id ? { ...d, absences: newAbsences } : d)
+    }));
+
+    try {
+      await disciplineApi.updateAbsences(id, newAbsences);
+    } catch (err: any) {
+      console.warn('Erro ao atualizar faltas no backend:', err.message);
+    }
+  },
+
+  // -------------------------------------------------------------
+  // HORÁRIOS (SCHEDULES)
+  // -------------------------------------------------------------
+  addSchedule: async (schedule) => {
+    try {
+      const created = await scheduleApi.create({
+        disciplineId: schedule.disciplineId,
+        dayOfWeek: schedule.dayOfWeek,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        room: schedule.room,
+      });
+
+      const formatted = dtoToSchedule(created);
+      set((state) => ({ schedules: [...state.schedules, formatted] }));
+      return formatted;
+    } catch (err: any) {
+      console.warn('Backend offline ou erro ao adicionar horário, adicionando localmente:', err.message);
+      const localSchedule: Schedule = {
+        ...schedule,
+        id: schedule.id || Date.now().toString(),
+      };
+      set((state) => ({ schedules: [...state.schedules, localSchedule] }));
+      return localSchedule;
+    }
+  },
+
+  removeSchedule: async (id) => {
+    set((state) => ({ schedules: state.schedules.filter(s => s.id !== id) }));
+    try {
+      await scheduleApi.delete(id);
+    } catch (err: any) {
+      console.warn('Erro ao remover horário no backend:', err.message);
+    }
+  },
+
+  // -------------------------------------------------------------
+  // TAREFAS (TASKS)
+  // -------------------------------------------------------------
+  addTask: async (task) => {
+    try {
+      const created = await taskApi.create({
+        title: task.title,
+        disciplineId: task.disciplineId,
+        dueDate: task.dueDate,
+        completed: task.completed,
+        type: task.type,
+      });
+
+      const formatted = dtoToTask(created);
+      set((state) => ({ tasks: [...state.tasks, formatted] }));
+      return formatted;
+    } catch (err: any) {
+      console.warn('Backend offline ou erro ao criar tarefa, criando localmente:', err.message);
+      const localTask: Task = {
+        ...task,
+        id: task.id || Date.now().toString(),
+      };
+      set((state) => ({ tasks: [...state.tasks, localTask] }));
+      return localTask;
+    }
+  },
+
+  toggleTask: async (id) => {
+    set((state) => ({
+      tasks: state.tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+    }));
+
+    try {
+      await taskApi.toggle(id);
+    } catch (err: any) {
+      console.warn('Erro ao alterar status da tarefa no backend:', err.message);
+    }
+  },
+
+  removeTask: async (id) => {
+    set((state) => ({ tasks: state.tasks.filter(t => t.id !== id) }));
+    try {
+      await taskApi.delete(id);
+    } catch (err: any) {
+      console.warn('Erro ao remover tarefa no backend:', err.message);
+    }
+  },
+
+  // -------------------------------------------------------------
+  // PROVAS (EXAMS)
+  // -------------------------------------------------------------
+  addExam: async (exam) => {
+    try {
+      const created = await examApi.create({
+        title: exam.title,
+        disciplineId: exam.disciplineId,
+        date: exam.date,
+        time: exam.time,
+        topics: exam.topics,
+      });
+
+      const formatted = dtoToExam(created);
+      set((state) => ({ exams: [...state.exams, formatted] }));
+      return formatted;
+    } catch (err: any) {
+      console.warn('Backend offline ou erro ao criar prova, criando localmente:', err.message);
+      const localExam: Exam = {
+        ...exam,
+        id: exam.id || Date.now().toString(),
+      };
+      set((state) => ({ exams: [...state.exams, localExam] }));
+      return localExam;
+    }
+  },
+
+  removeExam: async (id) => {
+    set((state) => ({ exams: state.exams.filter(e => e.id !== id) }));
+    try {
+      await examApi.delete(id);
+    } catch (err: any) {
+      console.warn('Erro ao remover prova no backend:', err.message);
+    }
+  },
 }));

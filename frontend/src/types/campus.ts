@@ -6,6 +6,7 @@ export interface Discipline {
   color: string;
   absences: number;
   workload: number;
+  period?: number;
   grades?: {
     n1?: number;
     n2?: number;

@@ -19,10 +19,10 @@ interface NowHappeningCardProps {
 
 export default function NowHappeningCard({
   title,
-  startTime = '07:00',
-  endTime = '10:20',
-  room = 'Lab 04 - Bloco B',
-  teacher = 'Prof. Leandro Luttiane',
+  startTime,
+  endTime,
+  room,
+  teacher,
   isCurrent = true,
   color,
   onPressDetails,
@@ -34,7 +34,7 @@ export default function NowHappeningCard({
   const [progress, setProgress] = React.useState(0);
 
   React.useEffect(() => {
-    if (isCurrent) {
+    if (isCurrent && startTime && endTime) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
