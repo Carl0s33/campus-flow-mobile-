@@ -1,9 +1,15 @@
 export interface Discipline {
   id: string;
   name: string;
+  code?: string;
   teacher?: string;
   color: string;
   absences: number;
+  workload: number;
+  grades?: {
+    n1?: number;
+    n2?: number;
+  };
 }
 
 export interface Schedule {

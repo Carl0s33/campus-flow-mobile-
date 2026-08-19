@@ -21,7 +21,7 @@ Este projeto é parte do Trabalho de Conclusão de Curso (TCC) focado na melhori
 
 ## 📸 Screenshots
 
-*(Adicione aqui algumas imagens ou um GIF do seu aplicativo rodando. Exemplo de código abaixo:)*
+
 <!-- <div style="display: flex; gap: 10px;">
   <img src="./assets/print-tela-inicial.png" width="200">
   <img src="./assets/print-materias.png" width="200">

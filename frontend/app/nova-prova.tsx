@@ -1,43 +1,44 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCampusStore } from '../hooks/useCampusStore';
-import { COLORS, FONTS, SIZES } from '../constants/theme';
-import { Task } from '../types/campus';
+import { useCampusStore } from '@/hooks/useCampusStore';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { Exam } from '@/types/campus';
 
-export default function NovaTarefaScreen() {
+export default function NovaProvaScreen() {
   const router = useRouter();
-  const addTask = useCampusStore(state => state.addTask);
+  const addExam = useCampusStore(state => state.addExam);
   const disciplines = useCampusStore(state => state.disciplines);
 
   const [title, setTitle] = useState('');
   const [disciplineId, setDisciplineId] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [type, setType] = useState<'trabalho' | 'atividade'>('atividade');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [topics, setTopics] = useState('');
 
   const handleSave = () => {
-    if (!title.trim() || !disciplineId || !dueDate.trim()) return;
+    if (!title.trim() || !disciplineId || !date.trim() || !time.trim()) return;
 
-    const newTask: Task = {
+    const newExam: Exam = {
       id: Date.now().toString(),
       title: title.trim(),
       disciplineId,
-      dueDate: dueDate.trim(),
-      completed: false,
-      type,
+      date: date.trim(),
+      time: time.trim(),
+      topics: topics.trim() || undefined,
     };
 
-    addTask(newTask);
+    addExam(newExam);
     router.back();
   };
 
-  const isFormValid = title.trim() && disciplineId && dueDate.trim();
+  const isFormValid = title.trim() && disciplineId && date.trim() && time.trim();
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Adicionar Tarefa</Text>
+          <Text style={styles.headerTitle}>Agendar Prova</Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.cancelText}>Cancelar</Text>
           </TouchableOpacity>
@@ -45,10 +46,10 @@ export default function NovaTarefaScreen() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Título da Tarefa</Text>
+            <Text style={styles.label}>Título da Prova</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Lista de Exercícios 3"
+              placeholder="Ex: P1"
               placeholderTextColor={COLORS.textTertiary}
               value={title}
               onChangeText={setTitle}
@@ -71,37 +72,45 @@ export default function NovaTarefaScreen() {
             </ScrollView>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Tipo de Tarefa</Text>
-            <View style={styles.horizontalScroll}>
-              <TouchableOpacity
-                style={[styles.chip, type === 'atividade' && styles.chipActive]}
-                onPress={() => setType('atividade')}
-              >
-                <Text style={[styles.chipText, type === 'atividade' && styles.chipTextActive]}>Atividade</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.chip, type === 'trabalho' && styles.chipActive]}
-                onPress={() => setType('trabalho')}
-              >
-                <Text style={[styles.chipText, type === 'trabalho' && styles.chipTextActive]}>Trabalho</Text>
-              </TouchableOpacity>
+          <View style={styles.row}>
+            <View style={[styles.formGroup, styles.flex]}>
+              <Text style={styles.label}>Data</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="AAAA-MM-DD"
+                placeholderTextColor={COLORS.textTertiary}
+                value={date}
+                onChangeText={setDate}
+              />
+            </View>
+            <View style={[styles.formGroup, styles.flex]}>
+              <Text style={styles.label}>Horário</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="08:00"
+                placeholderTextColor={COLORS.textTertiary}
+                value={time}
+                onChangeText={setTime}
+              />
             </View>
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Data de Vencimento</Text>
+            <Text style={styles.label}>Assuntos / Conteúdo (Opcional)</Text>
             <TextInput
-              style={styles.input}
-              placeholder="AAAA-MM-DD"
+              style={[styles.input, styles.textArea]}
+              placeholder="Descreva o conteúdo que cairá na prova..."
               placeholderTextColor={COLORS.textTertiary}
-              value={dueDate}
-              onChangeText={setDueDate}
+              value={topics}
+              onChangeText={setTopics}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
             />
           </View>
 
           <TouchableOpacity style={[styles.saveBtn, !isFormValid && styles.saveBtnDisabled]} onPress={handleSave} disabled={!isFormValid}>
-            <Text style={styles.saveBtnText}>Salvar Tarefa</Text>
+            <Text style={styles.saveBtnText}>Salvar Prova</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -117,9 +126,11 @@ const styles = StyleSheet.create({
   cancelText: { fontFamily: FONTS.medium, fontSize: SIZES.md, color: COLORS.textSecondary },
   content: { padding: 20, gap: 24 },
   formGroup: { gap: 8 },
+  row: { flexDirection: 'row', gap: 16 },
   label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: COLORS.textPrimary },
   input: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontFamily: FONTS.regular, fontSize: SIZES.md, color: COLORS.textPrimary },
-  horizontalScroll: { flexDirection: 'row', gap: 8 },
+  textArea: { height: 100 },
+  horizontalScroll: { gap: 8 },
   hint: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: COLORS.textTertiary },
   chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 9999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
   chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
