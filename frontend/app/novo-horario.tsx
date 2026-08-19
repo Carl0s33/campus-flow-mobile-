@@ -85,7 +85,11 @@ export default function NovoHorarioScreen() {
         room: room.trim(),
       });
 
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/calendario');
+      }
     } finally {
       setLoading(false);
     }

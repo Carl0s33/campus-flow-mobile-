@@ -56,7 +56,11 @@ export default function NovaProvaScreen() {
         time: time.trim(),
         topics: topics.trim() || undefined,
       });
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/calendario');
+      }
     } finally {
       setLoading(false);
     }

@@ -9,10 +9,19 @@ interface ScreenHeaderProps {
 
 export function ScreenHeader({ title }: ScreenHeaderProps) {
   const router = useRouter();
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   return (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>{title}</Text>
-      <TouchableOpacity onPress={() => router.back()}>
+      <TouchableOpacity onPress={handleBack} activeOpacity={0.7}>
         <Text style={styles.cancelText}>Cancelar</Text>
       </TouchableOpacity>
     </View>

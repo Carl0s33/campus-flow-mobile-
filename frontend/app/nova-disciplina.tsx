@@ -30,7 +30,11 @@ export default function NovaDisciplinaScreen() {
         absences: 0,
         workload: Number(workload) || 60,
       });
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/disciplinas');
+      }
     } finally {
       setLoading(false);
     }

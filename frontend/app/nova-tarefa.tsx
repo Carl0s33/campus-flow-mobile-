@@ -55,7 +55,11 @@ export default function NovaTarefaScreen() {
         completed: false,
         type,
       });
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/agenda');
+      }
     } finally {
       setLoading(false);
     }
