@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCampusStore } from '../../hooks/useCampusStore';
-import TopAppBar from '../../src/components/TopAppBar';
-import { MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS } from '../../constants/theme';
-import { useTheme } from '../../src/hooks/useTheme';
+import { useCampusStore } from '@/hooks/useCampusStore';
+import TopAppBar from '@/components/TopAppBar';
+import { MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS } from '@/constants/theme';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useTheme } from '@/hooks/useTheme';
 import { Clock, Plus, CheckCircle2, Circle, Trash2 } from 'lucide-react-native';
+import { formatDueDate, isDueToday } from '@/utils/dateHelpers';
+import PomodoroModal from '@/components/PomodoroModal';
 
 export default function AgendaScreen() {
   const router = useRouter();
@@ -15,6 +18,9 @@ export default function AgendaScreen() {
   const toggleTask = useCampusStore(state => state.toggleTask);
   const removeTask = useCampusStore(state => state.removeTask);
 
+  const [pomodoroVisible, setPomodoroVisible] = useState(false);
+  const [selectedTaskTitle, setSelectedTaskTitle] = useState('');
+
   const [filterType, setFilterType] = useState<'todos' | 'trabalho' | 'atividade'>('todos');
 
   const filteredTasks = tasks.filter(t => {
@@ -22,8 +28,12 @@ export default function AgendaScreen() {
     return t.type === filterType;
   });
 
-  const pendingTasks = filteredTasks.filter(t => !t.completed);
-  const completedTasks = filteredTasks.filter(t => t.completed);
+  const pendingTasks = filteredTasks
+    .filter(t => !t.completed)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  const completedTasks = filteredTasks
+    .filter(t => t.completed)
+    .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
   const thisWeekTasks = pendingTasks.slice(0, 3);
   const laterTasks = pendingTasks.slice(3);
 
@@ -37,6 +47,25 @@ export default function AgendaScreen() {
       ]
     );
   };
+
+  const handleOpenPomodoro = (title: string) => {
+    setSelectedTaskTitle(title);
+    setPomodoroVisible(true);
+  };
+
+  const renderLeftActions = (id: string) => (
+    <View style={styles.leftAction}>
+      <CheckCircle2 size={24} color="#FFFFFF" />
+      <Text style={styles.actionText}>Concluir</Text>
+    </View>
+  );
+
+  const renderRightActions = (id: string, title: string) => (
+    <TouchableOpacity style={styles.rightAction} onPress={() => handleDeleteTask(id, title)}>
+      <Trash2 size={24} color="#FFFFFF" />
+      <Text style={styles.actionText}>Remover</Text>
+    </TouchableOpacity>
+  );
 
   const styles = makeStyles(colors, isDark);
 
@@ -80,26 +109,32 @@ export default function AgendaScreen() {
               const disc = disciplines.find(d => d.id === task.disciplineId);
               const matteColor = disc?.color || MATTE_COLORS[idx % MATTE_COLORS.length];
               return (
-                <View key={task.id} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
-                  <TouchableOpacity onPress={() => toggleTask(task.id)} style={styles.checkboxTouch}>
-                    <Circle size={22} color="#111827" />
-                  </TouchableOpacity>
-                  <View style={styles.taskMainInfo}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <View style={styles.subjectTag}>
-                      <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.rightActionCol}>
-                    <View style={styles.dueCol}>
-                      <Clock size={13} color="#EF4444" />
-                      <Text style={styles.dueDateUrgent}>{task.dueDate}</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => handleDeleteTask(task.id, task.title)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Trash2 size={14} color="rgba(0,0,0,0.35)" />
+                <Swipeable
+                  key={task.id}
+                  renderLeftActions={() => renderLeftActions(task.id)}
+                  renderRightActions={() => renderRightActions(task.id, task.title)}
+                  onSwipeableLeftOpen={() => toggleTask(task.id)}
+                >
+                  <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenPomodoro(task.title)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
+                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleTask(task.id); }} style={styles.checkboxTouch}>
+                      <Circle size={22} color="#111827" />
                     </TouchableOpacity>
-                  </View>
-                </View>
+                    <View style={styles.taskMainInfo}>
+                      <Text style={styles.taskTitle}>{task.title}</Text>
+                      <View style={styles.subjectTag}>
+                        <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.rightActionCol}>
+                      <View style={styles.dueCol}>
+                        <Clock size={13} color={isDueToday(task.dueDate) ? "#EF4444" : "#374151"} />
+                        <Text style={isDueToday(task.dueDate) ? styles.dueDateUrgent : styles.dueDateNormal}>
+                          {formatDueDate(task.dueDate)}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Swipeable>
               );
             })
           )}
@@ -117,26 +152,32 @@ export default function AgendaScreen() {
               const disc = disciplines.find(d => d.id === task.disciplineId);
               const matteColor = disc?.color || MATTE_COLORS[(idx + 2) % MATTE_COLORS.length];
               return (
-                <View key={task.id} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
-                  <TouchableOpacity onPress={() => toggleTask(task.id)} style={styles.checkboxTouch}>
-                    <Circle size={22} color="#111827" />
-                  </TouchableOpacity>
-                  <View style={styles.taskMainInfo}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <View style={styles.subjectTag}>
-                      <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.rightActionCol}>
-                    <View style={styles.dueCol}>
-                      <Clock size={13} color="#374151" />
-                      <Text style={styles.dueDateNormal}>{task.dueDate}</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => handleDeleteTask(task.id, task.title)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Trash2 size={14} color="rgba(0,0,0,0.35)" />
+                <Swipeable
+                  key={task.id}
+                  renderLeftActions={() => renderLeftActions(task.id)}
+                  renderRightActions={() => renderRightActions(task.id, task.title)}
+                  onSwipeableLeftOpen={() => toggleTask(task.id)}
+                >
+                  <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenPomodoro(task.title)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
+                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleTask(task.id); }} style={styles.checkboxTouch}>
+                      <Circle size={22} color="#111827" />
                     </TouchableOpacity>
-                  </View>
-                </View>
+                    <View style={styles.taskMainInfo}>
+                      <Text style={styles.taskTitle}>{task.title}</Text>
+                      <View style={styles.subjectTag}>
+                        <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.rightActionCol}>
+                      <View style={styles.dueCol}>
+                        <Clock size={13} color={isDueToday(task.dueDate) ? "#EF4444" : "#374151"} />
+                        <Text style={isDueToday(task.dueDate) ? styles.dueDateUrgent : styles.dueDateNormal}>
+                          {formatDueDate(task.dueDate)}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Swipeable>
               );
             })
           )}
@@ -162,6 +203,12 @@ export default function AgendaScreen() {
           </View>
         )}
       </ScrollView>
+
+      <PomodoroModal 
+        visible={pomodoroVisible} 
+        onClose={() => setPomodoroVisible(false)} 
+        taskTitle={selectedTaskTitle} 
+      />
     </View>
   );
 }
@@ -207,6 +254,15 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     dueDateNormal: { fontFamily: FONTS.medium, fontSize: SIZES.xs, color: '#374151' },
     completedCard: { backgroundColor: colors.surface, opacity: 0.65 },
     completedText: { textDecorationLine: 'line-through', color: colors.textSecondary },
+    leftAction: {
+      flex: 1, backgroundColor: colors.success, justifyContent: 'center', alignItems: 'flex-start',
+      paddingLeft: 24, marginBottom: 10, borderRadius: BORDER.radiusLg,
+    },
+    rightAction: {
+      flex: 1, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'flex-end',
+      paddingRight: 24, marginBottom: 10, borderRadius: BORDER.radiusLg,
+    },
+    actionText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: SIZES.sm, marginTop: 4 },
     emptyCard: {
       backgroundColor: colors.surface, borderRadius: BORDER.radiusLg,
       padding: 16, borderWidth: 1, borderColor: colors.border, ...SHADOWS.light,

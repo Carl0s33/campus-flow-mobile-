@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCampusStore } from '../../hooks/useCampusStore';
-import TopAppBar from '../../src/components/TopAppBar';
-import NowHappeningCard from '../../src/components/NowHappeningCard';
-import { FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '../../constants/theme';
-import { useTheme } from '../../src/hooks/useTheme';
+import { useCampusStore } from '@/hooks/useCampusStore';
+import TopAppBar from '@/components/TopAppBar';
+import NowHappeningCard from '@/components/NowHappeningCard';
+import { FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { Clock, MapPin, User, Calendar as CalendarIcon, CheckSquare, AlertCircle } from 'lucide-react-native';
+import { formatDueDate, isDueToday } from '@/utils/dateHelpers';
+import { requestNotificationPermissions, scheduleClassReminder } from '@/hooks/useNotifications';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -15,21 +17,56 @@ export default function HomeScreen() {
   const disciplines = useCampusStore(state => state.disciplines);
   const schedules = useCampusStore(state => state.schedules);
   const tasks = useCampusStore(state => state.tasks);
+  const exams = useCampusStore(state => state.exams);
 
   const getDayOfWeek = () => {
     const today = new Date().getDay();
     return today === 0 ? 1 : today;
   };
 
+  const getNextClass = () => {
+    const today = getDayOfWeek();
+    const todaySchedules = schedules
+      .filter(s => s.dayOfWeek === today)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    // Assume current time is 08:00 for the mockup
+    return todaySchedules.find(s => s.startTime >= '08:00') || null;
+  };
+
+  const currentClass = getNextClass();
+
+  React.useEffect(() => {
+    requestNotificationPermissions().then((granted) => {
+      if (granted && currentClass) {
+        const disc = disciplines.find(d => d.id === currentClass.disciplineId);
+        // Agendar notificação fake para fins de demonstração (5 seg)
+        if (disc) {
+          scheduleClassReminder(disc.name, currentClass.room, currentClass.startTime);
+        }
+      }
+    });
+  }, []);
+
   const todaySchedules = schedules
     .filter(s => s.dayOfWeek === getDayOfWeek())
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  const currentClass = todaySchedules[0];
   const currentDiscipline = currentClass ? disciplines.find(d => d.id === currentClass.disciplineId) : null;
-  const remainingTodaySchedules = todaySchedules.slice(1);
+  const remainingTodaySchedules = todaySchedules
+    .slice(1)
+    .filter(sched => sched.disciplineId !== currentClass?.disciplineId);
 
-  const pendingTasks = tasks.filter(t => !t.completed).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const pendingTasks = tasks
+    .filter(t => !t.completed)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+  // Próxima Prova
+  const upcomingExams = exams
+    .filter(e => new Date(e.date).getTime() >= new Date().setHours(0,0,0,0))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const nextExam = upcomingExams[0];
+
   const totalAbsences = disciplines.reduce((acc, curr) => acc + curr.absences, 0);
 
   const styles = makeStyles(colors, isDark);
@@ -52,6 +89,7 @@ export default function HomeScreen() {
           room={currentClass?.room || 'Lab 04 - Bloco B'}
           teacher={currentDiscipline?.teacher || 'Prof. Leandro Luttiane'}
           isCurrent={true}
+          color={currentDiscipline?.color}
           onPressDetails={() => router.push('/(tabs)/calendario')}
           onPressAdd={() => router.push('/nova-disciplina')}
         />
@@ -59,33 +97,33 @@ export default function HomeScreen() {
         {/* STATS WIDGET */}
         <View style={styles.statsRow}>
           <TouchableOpacity
-            style={[styles.statCard, { backgroundColor: colors.matteBlue }]}
+            style={[styles.statCard, { backgroundColor: colors.surface }]}
             onPress={() => router.push('/(tabs)/calendario')}
             activeOpacity={0.8}
           >
-            <CalendarIcon size={18} color={getContrastTextColor(colors.matteBlue)} />
-            <Text style={[styles.statNumber, { color: getContrastTextColor(colors.matteBlue) }]}>{todaySchedules.length}</Text>
-            <Text style={[styles.statLabel, { color: getContrastTextColor(colors.matteBlue) }]}>Aulas Hoje</Text>
+            <CalendarIcon size={18} color={colors.matteBlue} />
+            <Text style={[styles.statNumber, { color: colors.matteBlue }]}>{todaySchedules.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.matteBlue }]}>Aulas Hoje</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, { backgroundColor: colors.mattePink }]}
+            style={[styles.statCard, { backgroundColor: colors.surface }]}
             onPress={() => router.push('/(tabs)/agenda')}
             activeOpacity={0.8}
           >
-            <CheckSquare size={18} color={getContrastTextColor(colors.mattePink)} />
-            <Text style={[styles.statNumber, { color: getContrastTextColor(colors.mattePink) }]}>{pendingTasks.length}</Text>
-            <Text style={[styles.statLabel, { color: getContrastTextColor(colors.mattePink) }]}>Tarefas</Text>
+            <CheckSquare size={18} color={colors.mattePink} />
+            <Text style={[styles.statNumber, { color: colors.mattePink }]}>{pendingTasks.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.mattePink }]}>Tarefas</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, { backgroundColor: colors.matteGreen }]}
+            style={[styles.statCard, { backgroundColor: colors.surface }]}
             onPress={() => router.push('/(tabs)/disciplinas')}
             activeOpacity={0.8}
           >
-            <AlertCircle size={18} color={getContrastTextColor(colors.matteGreen)} />
-            <Text style={[styles.statNumber, { color: getContrastTextColor(colors.matteGreen) }]}>{totalAbsences}</Text>
-            <Text style={[styles.statLabel, { color: getContrastTextColor(colors.matteGreen) }]}>Faltas Totais</Text>
+            <AlertCircle size={18} color={colors.matteGreen} />
+            <Text style={[styles.statNumber, { color: colors.matteGreen }]}>{totalAbsences}</Text>
+            <Text style={[styles.statLabel, { color: colors.matteGreen }]}>Faltas Totais</Text>
           </TouchableOpacity>
         </View>
 
@@ -108,29 +146,28 @@ export default function HomeScreen() {
               {remainingTodaySchedules.map((sched) => {
                 const disc = disciplines.find(d => d.id === sched.disciplineId);
                 const matteBg = disc?.color || colors.matteGreen;
-                const cardTextColor = getContrastTextColor(matteBg);
 
                 return (
-                  <View key={sched.id} style={[styles.classCard, { backgroundColor: matteBg }]}>
+                  <View key={sched.id} style={[styles.classCard, { backgroundColor: colors.surface }]}>
                     <View style={styles.cardTopRow}>
-                      <View style={styles.pinDot} />
+                      <View style={[styles.pinDot, { backgroundColor: matteBg, width: 10, height: 10, borderRadius: 5 }]} />
                       <View style={styles.timeBadge}>
-                        <Clock size={12} color={cardTextColor} />
-                        <Text style={[styles.timeText, { color: cardTextColor }]}>{sched.startTime} - {sched.endTime}</Text>
+                        <Clock size={12} color={colors.textSecondary} />
+                        <Text style={[styles.timeText, { color: colors.textSecondary }]}>{sched.startTime} - {sched.endTime}</Text>
                       </View>
                     </View>
 
-                    <Text style={[styles.classTitle, { color: cardTextColor }]}>{disc?.name || 'Disciplina'}</Text>
+                    <Text style={[styles.classTitle, { color: colors.textPrimary }]}>{disc?.name || 'Disciplina'}</Text>
 
                     <View style={styles.metaRow}>
                       <View style={styles.metaChip}>
-                        <MapPin size={12} color={cardTextColor} />
-                        <Text style={[styles.metaText, { color: cardTextColor }]}>{sched.room}</Text>
+                        <MapPin size={12} color={colors.textSecondary} />
+                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>{sched.room}</Text>
                       </View>
                       {disc?.teacher && (
                         <View style={styles.metaChip}>
-                          <User size={12} color={cardTextColor} />
-                          <Text style={[styles.metaText, { color: cardTextColor }]}>{disc.teacher}</Text>
+                          <User size={12} color={colors.textSecondary} />
+                          <Text style={[styles.metaText, { color: colors.textSecondary }]}>{disc.teacher}</Text>
                         </View>
                       )}
                     </View>
@@ -141,7 +178,38 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* PRAZOS PRÓXIMOS */}
+        {/* PRÓXIMA PROVA (EXAM) */}
+        {nextExam && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Avaliação Importante</Text>
+            </View>
+            <View style={[styles.taskCard, styles.examCard]}>
+              <View style={styles.taskHeader}>
+                <View style={styles.taskDisciplineRow}>
+                  <AlertCircle size={16} color="#DC2626" />
+                  <Text style={[styles.taskSubject, { color: '#DC2626' }]} numberOfLines={1}>
+                    {disciplines.find(d => d.id === nextExam.disciplineId)?.name || 'Geral'}
+                  </Text>
+                </View>
+                <View style={[styles.urgentBadge, { backgroundColor: '#FEE2E2' }]}>
+                  <Text style={[styles.urgentBadgeText, { color: '#DC2626' }]}>Prova</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.taskTitle, { color: colors.textPrimary }]}>{nextExam.title}</Text>
+
+              <View style={styles.taskDueRow}>
+                <CalendarIcon size={14} color="#DC2626" />
+                <Text style={[styles.taskDueText, { color: '#DC2626', fontFamily: FONTS.bold }]}>
+                  {formatDueDate(nextExam.date)} às {nextExam.time}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* PRAZOS PRÓXIMOS (TAREFAS) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Prazos Próximos</Text>
@@ -156,36 +224,40 @@ export default function HomeScreen() {
               <Text style={styles.emptyPostItText}>Nenhuma tarefa pendente!</Text>
             </View>
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalContent}
-            >
+            <View style={styles.timelineList}>
               {pendingTasks.map((task, idx) => {
                 const disc = disciplines.find(d => d.id === task.disciplineId);
-                const matteBg = disc?.color || (idx % 2 === 0 ? colors.mattePink : colors.matteYellow);
-                const cardTextColor = getContrastTextColor(matteBg);
+                const matteBg = disc?.color || colors.matteYellow;
+
+                // Simulação simples de urgência: se for hoje
+                const urgent = isDueToday(task.dueDate);
 
                 return (
-                  <View key={task.id} style={[styles.squarePostIt, { backgroundColor: matteBg }]}>
-                    <View style={styles.squareHeader}>
-                      <View style={styles.pinDot} />
-                      <Text style={[styles.squareSubject, { color: cardTextColor }]} numberOfLines={1}>
-                        {disc?.code || 'Geral'}
-                      </Text>
+                  <View key={task.id} style={[styles.taskCard, { backgroundColor: colors.surface }]}>
+                    <View style={styles.taskHeader}>
+                      <View style={styles.taskDisciplineRow}>
+                        <View style={[styles.pinDot, { backgroundColor: matteBg, width: 8, height: 8, borderRadius: 4 }]} />
+                        <Text style={[styles.taskSubject, { color: colors.textSecondary }]} numberOfLines={1}>
+                          {disc?.name || 'Geral'}
+                        </Text>
+                      </View>
+                      {urgent && (
+                        <View style={styles.urgentBadge}>
+                          <Text style={styles.urgentBadgeText}>Vence Hoje</Text>
+                        </View>
+                      )}
                     </View>
 
-                    <Text style={[styles.squareTitle, { color: cardTextColor }]} numberOfLines={2}>{task.title}</Text>
+                    <Text style={[styles.taskTitle, { color: colors.textPrimary }]}>{task.title}</Text>
 
-                    <View style={styles.squareDueRow}>
-                      <Clock size={12} color="#EF4444" />
-                      <Text style={styles.squareDueText}>{task.dueDate}</Text>
+                    <View style={styles.taskDueRow}>
+                      <CalendarIcon size={14} color={colors.textTertiary} />
+                      <Text style={[styles.taskDueText, { color: colors.textSecondary }]}>{formatDueDate(task.dueDate)}</Text>
                     </View>
                   </View>
                 );
               })}
-            </ScrollView>
+            </View>
           )}
         </View>
 
@@ -198,10 +270,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     scrollContent: { padding: 24, paddingBottom: 110 },
-    statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+    statsRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
     statCard: {
       flex: 1,
-      padding: 14,
+      padding: 12,
       borderRadius: BORDER.radiusLg,
       borderWidth: 1,
       borderColor: 'rgba(0,0,0,0.08)',
@@ -210,7 +282,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       ...SHADOWS.postIt,
     },
     statNumber: { fontFamily: FONTS.bold, fontSize: SIZES.xl },
-    statLabel: { fontFamily: FONTS.semiBold, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+    statLabel: { fontFamily: FONTS.semiBold, fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 },
     section: { marginBottom: 28 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionTitle: { fontFamily: FONTS.bold, fontSize: SIZES.lg, color: colors.textPrimary },
@@ -237,18 +309,24 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       backgroundColor: 'rgba(0,0,0,0.07)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: BORDER.radiusSm,
     },
     metaText: { fontFamily: FONTS.semiBold, fontSize: SIZES.xs },
-    squarePostIt: {
-      width: 165, height: 155, borderRadius: BORDER.radiusLg, padding: 16,
-      borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', justifyContent: 'space-between', ...SHADOWS.postIt,
+    taskCard: {
+      borderRadius: BORDER.radiusLg, padding: 20,
+      borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', ...SHADOWS.postIt,
     },
-    squareHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    squareSubject: { fontFamily: FONTS.bold, fontSize: SIZES.xs, flex: 1 },
-    squareTitle: { fontFamily: FONTS.bold, fontSize: SIZES.sm, lineHeight: 20 },
-    squareDueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    squareDueText: { fontFamily: FONTS.bold, fontSize: SIZES.xs, color: '#EF4444' },
+    taskHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    taskDisciplineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+    taskSubject: { fontFamily: FONTS.semiBold, fontSize: SIZES.xs },
+    urgentBadge: { backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: BORDER.radiusSm },
+    urgentBadgeText: { color: '#DC2626', fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase' },
+    taskTitle: { fontFamily: FONTS.bold, fontSize: SIZES.md, lineHeight: 22, marginBottom: 12 },
+    taskDueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    taskDueText: { fontFamily: FONTS.medium, fontSize: SIZES.sm },
+    examCard: {
+      backgroundColor: '#FEF2F2', borderColor: '#FECACA', borderWidth: 1, ...SHADOWS.light,
+    },
     emptyPostIt: {
       backgroundColor: colors.surface, borderRadius: BORDER.radiusLg, padding: 20,
-      borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, ...SHADOWS.light,
+      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', gap: 12, ...SHADOWS.light,
     },
     emptyPostItText: { fontFamily: FONTS.medium, fontSize: SIZES.sm, color: colors.textSecondary },
     horizontalScroll: { marginHorizontal: -24 },

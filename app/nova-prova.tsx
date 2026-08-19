@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCampusStore } from '../hooks/useCampusStore';
-import { COLORS, FONTS, SIZES } from '../constants/theme';
-import { Exam } from '../types/campus';
+import { useCampusStore } from '@/hooks/useCampusStore';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { Exam } from '@/types/campus';
 
 export default function NovaProvaScreen() {
   const router = useRouter();

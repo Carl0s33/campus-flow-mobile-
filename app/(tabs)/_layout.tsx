@@ -2,8 +2,8 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Calendar, BookOpen, CheckSquare } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FONTS } from '../../constants/theme';
-import { useTheme } from '../../src/hooks/useTheme';
+import { FONTS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();

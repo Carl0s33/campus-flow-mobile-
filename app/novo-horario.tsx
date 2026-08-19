@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCampusStore } from '../hooks/useCampusStore';
-import { COLORS, FONTS, SIZES } from '../constants/theme';
-import { Schedule } from '../types/campus';
+import { useCampusStore } from '@/hooks/useCampusStore';
+import { COLORS, FONTS, SIZES } from '@/constants/theme';
+import { Schedule } from '@/types/campus';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { FormInput } from '@/components/FormInput';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 const DAYS = [
   { label: 'Segunda', val: 1 },
@@ -46,12 +49,7 @@ export default function NovoHorarioScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Adicionar Aula</Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.cancelText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader title="Adicionar Aula" />
 
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.formGroup}>
@@ -86,42 +84,34 @@ export default function NovoHorarioScreen() {
           </View>
 
           <View style={styles.row}>
-            <View style={[styles.formGroup, styles.flex]}>
-              <Text style={styles.label}>Início</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="08:00"
-                placeholderTextColor={COLORS.textTertiary}
-                value={startTime}
-                onChangeText={setStartTime}
-              />
-            </View>
-            <View style={[styles.formGroup, styles.flex]}>
-              <Text style={styles.label}>Fim</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="09:40"
-                placeholderTextColor={COLORS.textTertiary}
-                value={endTime}
-                onChangeText={setEndTime}
-              />
-            </View>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Sala / Bloco</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: Prédio 4, Sala 201"
-              placeholderTextColor={COLORS.textTertiary}
-              value={room}
-              onChangeText={setRoom}
+            <FormInput
+              wrapperStyle={styles.flex}
+              label="Início"
+              placeholder="08:00"
+              value={startTime}
+              onChangeText={setStartTime}
+            />
+            <FormInput
+              wrapperStyle={styles.flex}
+              label="Fim"
+              placeholder="09:40"
+              value={endTime}
+              onChangeText={setEndTime}
             />
           </View>
 
-          <TouchableOpacity style={[styles.saveBtn, !isFormValid && styles.saveBtnDisabled]} onPress={handleSave} disabled={!isFormValid}>
-            <Text style={styles.saveBtnText}>Salvar Horário</Text>
-          </TouchableOpacity>
+          <FormInput
+            label="Sala / Bloco"
+            placeholder="Ex: Prédio 4, Sala 201"
+            value={room}
+            onChangeText={setRoom}
+          />
+
+          <PrimaryButton 
+            title="Salvar Horário" 
+            onPress={handleSave} 
+            disabled={!isFormValid} 
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -131,21 +121,14 @@ export default function NovoHorarioScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
-  headerTitle: { fontFamily: FONTS.bold, fontSize: SIZES.lg, color: COLORS.textPrimary },
-  cancelText: { fontFamily: FONTS.medium, fontSize: SIZES.md, color: COLORS.textSecondary },
   content: { padding: 20, gap: 24 },
   formGroup: { gap: 8 },
   row: { flexDirection: 'row', gap: 16 },
   label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: COLORS.textPrimary },
-  input: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontFamily: FONTS.regular, fontSize: SIZES.md, color: COLORS.textPrimary },
   horizontalScroll: { gap: 8 },
   hint: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: COLORS.textTertiary },
   chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 9999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
   chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   chipText: { fontFamily: FONTS.medium, fontSize: SIZES.sm, color: COLORS.textSecondary },
   chipTextActive: { color: COLORS.surface },
-  saveBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { fontFamily: FONTS.bold, fontSize: SIZES.md, color: COLORS.surface },
 });

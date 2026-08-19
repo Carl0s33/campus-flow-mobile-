@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Menu, Bell, Moon, Sun } from 'lucide-react-native';
-import { FONTS, SIZES, BORDER, SHADOWS } from '../constants/theme';
+import { FONTS, SIZES, BORDER, SHADOWS } from '@/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TopAppBarProps {
   title?: string;

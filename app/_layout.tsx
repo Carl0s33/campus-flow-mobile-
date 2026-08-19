@@ -2,8 +2,8 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { View, ActivityIndicator } from 'react-native';
-import { ThemeProvider } from '../src/hooks/useTheme';
-import { useTheme } from '../src/hooks/useTheme';
+import { ThemeProvider } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { StatusBar } from 'expo-status-bar';
 
 function AppContent() {

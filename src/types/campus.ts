@@ -5,6 +5,11 @@ export interface Discipline {
   teacher?: string;
   color: string;
   absences: number;
+  workload: number;
+  grades?: {
+    n1?: number;
+    n2?: number;
+  };
 }
 
 export interface Schedule {

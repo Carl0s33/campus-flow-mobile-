@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
 import { Clock, MapPin, User, ArrowRight, Plus, Sparkles } from 'lucide-react-native';
-import { FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '../constants/theme'; 
-import { useTheme } from '../hooks/useTheme';
+import { FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '@/constants/theme'; 
+import { useTheme } from '@/hooks/useTheme';
+import { calculateClassProgress } from '@/utils/dateHelpers';
 
 interface NowHappeningCardProps {
   title?: string;
@@ -11,6 +12,7 @@ interface NowHappeningCardProps {
   room?: string;
   teacher?: string;
   isCurrent?: boolean;
+  color?: string;
   onPressDetails?: () => void;
   onPressAdd?: () => void;
 }
@@ -22,11 +24,32 @@ export default function NowHappeningCard({
   room = 'Lab 04 - Bloco B',
   teacher = 'Prof. Leandro Luttiane',
   isCurrent = true,
+  color,
   onPressDetails,
   onPressAdd,
 }: NowHappeningCardProps) {
   const { colors, isDark } = useTheme();
   const styles = makeStyles(colors, isDark);
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  const [progress, setProgress] = React.useState(0);
+
+  React.useEffect(() => {
+    if (isCurrent) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+        ])
+      ).start();
+
+      setProgress(calculateClassProgress(startTime, endTime));
+      const interval = setInterval(() => {
+        setProgress(calculateClassProgress(startTime, endTime));
+      }, 60000); // 1 minute
+
+      return () => clearInterval(interval);
+    }
+  }, [isCurrent, pulseAnim, startTime, endTime]);
 
   // --- EMPTY STATE ---
   if (!title) {
@@ -47,7 +70,7 @@ export default function NowHappeningCard({
     );
   }
 
-  const cardBg = colors.matteYellow;
+  const cardBg = color || colors.matteYellow;
   const cardTextColor = getContrastTextColor(cardBg);
 
   // --- POST-IT CARD ---
@@ -58,8 +81,8 @@ export default function NowHappeningCard({
         <View style={styles.pinDot} /> 
         
         <View style={styles.badgePill}>
-          <View style={[styles.badgeDot, { backgroundColor: cardTextColor }]} />
-          <Text style={[styles.badgeText, { color: cardTextColor }]}>Acontecendo Agora</Text>
+          <Animated.View style={[styles.pulseDot, { opacity: pulseAnim }]} />
+          <Text style={[styles.badgeText, { color: cardTextColor }]}>Termina em 40 min</Text>
         </View>
       </View>
 
@@ -90,15 +113,21 @@ export default function NowHappeningCard({
         )}
       </View>
 
-      {/* BOTÃO DE AÇÃO */}
-      <TouchableOpacity
-        style={styles.ctaButton}
-        onPress={onPressDetails}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.ctaButtonText}>Ver Detalhes</Text>
-        <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.2} />
-      </TouchableOpacity>
+      {/* BOTÃO DE AÇÃO E PROGRESS BAR */}
+      <View style={styles.footerRow}>
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={onPressDetails}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.ctaButtonText}>Ver Detalhes</Text>
+          <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.2} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.progressContainer}>
+        <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: cardTextColor }]} />
+      </View>
     </View>
   );
 }
@@ -134,10 +163,11 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       paddingVertical: 5,
       borderRadius: 20,
     },
-    badgeDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 3.5,
+    pulseDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#10B981', // Neon green
     },
     badgeText: {
       fontFamily: FONTS.bold,
@@ -170,6 +200,12 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       fontFamily: FONTS.medium,
       fontSize: SIZES.sm,
     },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      marginTop: 8,
+    },
     ctaButton: {
       backgroundColor: colors.primary, 
       paddingVertical: 14,
@@ -177,7 +213,6 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       borderRadius: BORDER.radiusSm,
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'flex-start',
       gap: 8,
       ...SHADOWS.light,
     },
@@ -228,6 +263,16 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       color: '#FFFFFF',
       fontFamily: FONTS.bold,
       fontSize: SIZES.sm,
+    },
+    progressContainer: {
+      height: 6,
+      backgroundColor: 'rgba(0,0,0,0.1)',
+      marginTop: 20,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
     },
   });
 }

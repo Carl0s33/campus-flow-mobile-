@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCampusStore } from '../../hooks/useCampusStore';
-import TopAppBar from '../../src/components/TopAppBar';
-import { COLORS, MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '../../constants/theme';
-import { useTheme } from '../../src/hooks/useTheme';
+import { useCampusStore } from '@/hooks/useCampusStore';
+import TopAppBar from '@/components/TopAppBar';
+import { COLORS, MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { MapPin, Plus, User, Calendar as CalendarIcon } from 'lucide-react-native';
+import { mergeSequentialSchedules } from '@/utils/scheduleHelpers';
 
 const DAYS = [
   { label: 'Segunda', short: 'Seg', val: 1 },
@@ -26,6 +27,8 @@ export default function CalendarioScreen() {
   const daySchedules = schedules
     .filter(s => s.dayOfWeek === selectedDay)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  const mergedSchedules = mergeSequentialSchedules(daySchedules);
 
   const styles = makeStyles(colors, isDark);
 
@@ -69,7 +72,7 @@ export default function CalendarioScreen() {
 
       {/* CONTENT AREA: DAY TIMELINE */}
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {daySchedules.length === 0 ? (
+        {mergedSchedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <CalendarIcon size={24} color={colors.textSecondary} />
             <Text style={styles.emptyTitle}>Sem aulas neste dia</Text>
@@ -85,7 +88,7 @@ export default function CalendarioScreen() {
           </View>
         ) : (
           <View style={styles.timelineContainer}>
-            {daySchedules.map((item, idx) => {
+            {mergedSchedules.map((item, idx) => {
               const discipline = disciplines.find(d => d.id === item.disciplineId);
               const matteColor = discipline?.color || MATTE_COLORS[idx % MATTE_COLORS.length];
               const cardTextColor = getContrastTextColor(matteColor);
@@ -109,6 +112,14 @@ export default function CalendarioScreen() {
                     </View>
 
                     <Text style={[styles.classTitle, { color: cardTextColor }]}>{discipline?.name || 'Disciplina'}</Text>
+
+                    {item.isMerged && (
+                      <View style={styles.mergedDivider}>
+                         {item.midTimes.map(t => (
+                           <Text key={t} style={[styles.mergedDividerText, { color: cardTextColor }]}>--- {t} ---</Text>
+                         ))}
+                      </View>
+                    )}
 
                     <View style={styles.metaRow}>
                       <View style={styles.metaChip}>
@@ -165,6 +176,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     codeBadge: { backgroundColor: 'rgba(0,0,0,0.08)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
     codeBadgeText: { fontFamily: FONTS.bold, fontSize: 10 },
     classTitle: { fontFamily: FONTS.bold, fontSize: SIZES.md, marginBottom: 10, lineHeight: 22 },
+    mergedDivider: { borderTopWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(0,0,0,0.1)', paddingTop: 8, marginTop: 4, marginBottom: 12 },
+    mergedDividerText: { fontFamily: FONTS.medium, fontSize: 10, opacity: 0.6, textAlign: 'center' },
     metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     metaChip: {
       flexDirection: 'row', alignItems: 'center', gap: 4,

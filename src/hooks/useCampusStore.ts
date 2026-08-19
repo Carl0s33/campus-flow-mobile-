@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Discipline, Schedule, Task, Exam } from '../types/campus';
+import { Discipline, Schedule, Task, Exam } from '@/types/campus';
 
 interface CampusState {
   userName: string;
@@ -10,6 +10,7 @@ interface CampusState {
   exams: Exam[];
   addDiscipline: (discipline: Discipline) => void;
   removeDiscipline: (id: string) => void;
+  setGrade: (id: string, n1?: number, n2?: number) => void;
   incrementAbsence: (id: string) => void;
   decrementAbsence: (id: string) => void;
   addSchedule: (schedule: Schedule) => void;
@@ -30,6 +31,7 @@ const INITIAL_DISCIPLINES: Discipline[] = [
     teacher: 'Leandro Luttiane',
     color: '#FBBF24', // 💛 Amarelo Ouro Vibrante
     absences: 0,
+    workload: 60,
   },
   {
     id: 'd2',
@@ -38,6 +40,7 @@ const INITIAL_DISCIPLINES: Discipline[] = [
     teacher: 'Mauricio Rabello',
     color: '#34D399', // 💚 Verde Esmeralda Vibrante
     absences: 1,
+    workload: 60,
   },
   {
     id: 'd3',
@@ -46,6 +49,7 @@ const INITIAL_DISCIPLINES: Discipline[] = [
     teacher: 'Eliezio Soares',
     color: '#60A5FA', // 💙 Azul Vivo
     absences: 0,
+    workload: 80,
   },
   {
     id: 'd4',
@@ -54,6 +58,7 @@ const INITIAL_DISCIPLINES: Discipline[] = [
     teacher: 'Eliezio Soares',
     color: '#F472B6', // 🩷 Rosa Choque Matte
     absences: 0,
+    workload: 40,
   },
   {
     id: 'd5',
@@ -62,6 +67,7 @@ const INITIAL_DISCIPLINES: Discipline[] = [
     teacher: 'Ronaldo Junior',
     color: '#A78BFA', // 💜 Roxo Violeta Vibrante
     absences: 2,
+    workload: 60,
   },
   {
     id: 'd6',
@@ -70,6 +76,7 @@ const INITIAL_DISCIPLINES: Discipline[] = [
     teacher: 'Mauricio Rabello',
     color: '#FB923C', // 🧡 Laranja Tangerina Vibrante
     absences: 0,
+    workload: 60,
   },
 ];
 
@@ -103,7 +110,7 @@ const INITIAL_TASKS: Task[] = [
     id: 't1',
     title: 'Implementação de Árvores AVL',
     disciplineId: 'd1',
-    dueDate: 'Amanhã, 23:59',
+    dueDate: '2026-08-20T23:59:00Z',
     completed: false,
     type: 'trabalho',
   },
@@ -111,7 +118,7 @@ const INITIAL_TASKS: Task[] = [
     id: 't2',
     title: 'Plano de Testes Unitários (Jest)',
     disciplineId: 'd2',
-    dueDate: '15/08, 18:00',
+    dueDate: '2026-08-15T18:00:00Z',
     completed: false,
     type: 'trabalho',
   },
@@ -119,7 +126,7 @@ const INITIAL_TASKS: Task[] = [
     id: 't3',
     title: 'Arquitetura Spring Boot & Microserviços',
     disciplineId: 'd3',
-    dueDate: '18/08, 22:00',
+    dueDate: '2026-08-19T22:00:00Z',
     completed: false,
     type: 'trabalho',
   },
@@ -127,7 +134,7 @@ const INITIAL_TASKS: Task[] = [
     id: 't4',
     title: 'Proposta do Projeto de Sistemas',
     disciplineId: 'd4',
-    dueDate: '22/08, 12:00',
+    dueDate: '2026-08-22T12:00:00Z',
     completed: false,
     type: 'atividade',
   },
@@ -135,7 +142,7 @@ const INITIAL_TASKS: Task[] = [
     id: 't5',
     title: 'Estudo Dirigido: Escalonamento de Processos',
     disciplineId: 'd5',
-    dueDate: '25/08, 10:00',
+    dueDate: '2026-08-25T10:00:00Z',
     completed: false,
     type: 'atividade',
   },
@@ -143,10 +150,21 @@ const INITIAL_TASKS: Task[] = [
     id: 't6',
     title: 'Cronograma EAP e Matriz RACI',
     disciplineId: 'd6',
-    dueDate: '28/08, 23:59',
+    dueDate: '2026-08-28T23:59:00Z',
     completed: false,
     type: 'trabalho',
   },
+];
+
+const INITIAL_EXAMS: Exam[] = [
+  {
+    id: 'e1',
+    title: 'Prova 1 - Estruturas Não Lineares',
+    disciplineId: 'd1',
+    date: '2026-08-23',
+    time: '08:50',
+    topics: 'Árvores AVL e Grafos',
+  }
 ];
 
 export const useCampusStore = create<CampusState>((set) => ({
@@ -155,9 +173,12 @@ export const useCampusStore = create<CampusState>((set) => ({
   disciplines: INITIAL_DISCIPLINES,
   schedules: INITIAL_SCHEDULES,
   tasks: INITIAL_TASKS,
-  exams: [],
+  exams: INITIAL_EXAMS,
   addDiscipline: (discipline) => set((state) => ({ disciplines: [...state.disciplines, discipline] })),
   removeDiscipline: (id) => set((state) => ({ disciplines: state.disciplines.filter(d => d.id !== id) })),
+  setGrade: (id, n1, n2) => set((state) => ({
+    disciplines: state.disciplines.map(d => d.id === id ? { ...d, grades: { ...d.grades, n1: n1 ?? d.grades?.n1, n2: n2 ?? d.grades?.n2 } } : d)
+  })),
   incrementAbsence: (id) => set((state) => ({
     disciplines: state.disciplines.map(d => d.id === id ? { ...d, absences: d.absences + 1 } : d)
   })),
