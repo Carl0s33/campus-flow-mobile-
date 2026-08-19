@@ -187,21 +187,21 @@ export default function HomeScreen() {
             <View style={[styles.taskCard, styles.examCard]}>
               <View style={styles.taskHeader}>
                 <View style={styles.taskDisciplineRow}>
-                  <AlertCircle size={16} color="#DC2626" />
-                  <Text style={[styles.taskSubject, { color: '#DC2626' }]} numberOfLines={1}>
+                  <AlertCircle size={16} color={isDark ? '#F87171' : '#DC2626'} />
+                  <Text style={[styles.taskSubject, { color: isDark ? '#F87171' : '#DC2626' }]} numberOfLines={1}>
                     {disciplines.find(d => d.id === nextExam.disciplineId)?.name || 'Geral'}
                   </Text>
                 </View>
-                <View style={[styles.urgentBadge, { backgroundColor: '#FEE2E2' }]}>
-                  <Text style={[styles.urgentBadgeText, { color: '#DC2626' }]}>Prova</Text>
+                <View style={styles.urgentBadge}>
+                  <Text style={styles.urgentBadgeText}>Prova</Text>
                 </View>
               </View>
 
               <Text style={[styles.taskTitle, { color: colors.textPrimary }]}>{nextExam.title}</Text>
 
               <View style={styles.taskDueRow}>
-                <CalendarIcon size={14} color="#DC2626" />
-                <Text style={[styles.taskDueText, { color: '#DC2626', fontFamily: FONTS.bold }]}>
+                <CalendarIcon size={14} color={isDark ? '#F87171' : '#DC2626'} />
+                <Text style={[styles.taskDueText, { color: isDark ? '#F87171' : '#DC2626', fontFamily: FONTS.bold }]}>
                   {formatDueDate(nextExam.date)} às {nextExam.time}
                 </Text>
               </View>
@@ -316,13 +316,26 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     taskHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     taskDisciplineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
     taskSubject: { fontFamily: FONTS.semiBold, fontSize: SIZES.xs },
-    urgentBadge: { backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: BORDER.radiusSm },
-    urgentBadgeText: { color: '#DC2626', fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase' },
+    urgentBadge: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: BORDER.radiusSm,
+    },
+    urgentBadgeText: {
+      color: isDark ? '#F87171' : '#DC2626',
+      fontFamily: FONTS.bold,
+      fontSize: 10,
+      textTransform: 'uppercase',
+    },
     taskTitle: { fontFamily: FONTS.bold, fontSize: SIZES.md, lineHeight: 22, marginBottom: 12 },
     taskDueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     taskDueText: { fontFamily: FONTS.medium, fontSize: SIZES.sm },
     examCard: {
-      backgroundColor: '#FEF2F2', borderColor: '#FECACA', borderWidth: 1, ...SHADOWS.light,
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
+      borderColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#FECACA',
+      borderWidth: 1,
+      ...SHADOWS.light,
     },
     emptyPostIt: {
       backgroundColor: colors.surface, borderRadius: BORDER.radiusLg, padding: 20,
