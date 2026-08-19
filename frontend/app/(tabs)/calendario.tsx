@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import TopAppBar from '@/components/TopAppBar';
@@ -21,8 +21,16 @@ export default function CalendarioScreen() {
   const { colors, isDark } = useTheme();
   const schedules = useCampusStore(state => state.schedules);
   const disciplines = useCampusStore(state => state.disciplines);
+  const fetchData = useCampusStore(state => state.fetchData);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay() || 1);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const daySchedules = schedules
     .filter(s => s.dayOfWeek === selectedDay)
@@ -71,7 +79,11 @@ export default function CalendarioScreen() {
       </View>
 
       {/* CONTENT AREA: DAY TIMELINE */}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
         {mergedSchedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <CalendarIcon size={24} color={colors.textSecondary} />

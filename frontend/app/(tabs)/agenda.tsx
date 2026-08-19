@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import TopAppBar from '@/components/TopAppBar';
@@ -10,6 +10,12 @@ import { Clock, Plus, CheckCircle2, Circle, Trash2 } from 'lucide-react-native';
 import { formatDueDate, isDueToday } from '@/utils/dateHelpers';
 import PomodoroModal from '@/components/PomodoroModal';
 
+const FILTER_OPTIONS: { key: 'todos' | 'trabalho' | 'atividade'; label: string }[] = [
+  { key: 'todos', label: 'Todas' },
+  { key: 'trabalho', label: 'Trabalhos' },
+  { key: 'atividade', label: 'Atividades' },
+];
+
 export default function AgendaScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
@@ -17,11 +23,19 @@ export default function AgendaScreen() {
   const disciplines = useCampusStore(state => state.disciplines);
   const toggleTask = useCampusStore(state => state.toggleTask);
   const removeTask = useCampusStore(state => state.removeTask);
+  const fetchData = useCampusStore(state => state.fetchData);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [pomodoroVisible, setPomodoroVisible] = useState(false);
   const [selectedTaskTitle, setSelectedTaskTitle] = useState('');
 
   const [filterType, setFilterType] = useState<'todos' | 'trabalho' | 'atividade'>('todos');
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const filteredTasks = tasks.filter(t => {
     if (filterType === 'todos') return true;
@@ -73,7 +87,11 @@ export default function AgendaScreen() {
     <View style={styles.container}>
       <TopAppBar title="Minha Agenda" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
         <View style={styles.headerRow}>
           <Text style={styles.pageTitle}>Prazos & Tarefas</Text>
           <TouchableOpacity onPress={() => router.push('/nova-tarefa')} style={styles.addButton} activeOpacity={0.8}>
@@ -84,17 +102,20 @@ export default function AgendaScreen() {
 
         {/* Filter Pills */}
         <View style={styles.filterRow}>
-          {(['todos', 'trabalho', 'atividade'] as const).map(type => (
-            <TouchableOpacity
-              key={type}
-              style={[styles.filterChip, filterType === type && styles.filterChipActive]}
-              onPress={() => setFilterType(type)}
-            >
-              <Text style={[styles.filterChipText, filterType === type && styles.filterChipTextActive]}>
-                {type === 'todos' ? `Todas (${tasks.length})` : type === 'trabalho' ? 'Trabalhos' : 'Atividades'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {FILTER_OPTIONS.map(opt => {
+            const countText = opt.key === 'todos' ? `Todas (${tasks.length})` : opt.label;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={[styles.filterChip, filterType === opt.key && styles.filterChipActive]}
+                onPress={() => setFilterType(opt.key)}
+              >
+                <Text style={[styles.filterChipText, filterType === opt.key && styles.filterChipTextActive]}>
+                  {countText}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* ESTA SEMANA */}

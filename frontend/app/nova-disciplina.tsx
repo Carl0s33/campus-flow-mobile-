@@ -16,21 +16,24 @@ export default function NovaDisciplinaScreen() {
   const [teacher, setTeacher] = useState('');
   const [workload, setWorkload] = useState('');
   const [color, setColor] = useState(COLORS.primaryLight);
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    if (!name.trim()) return;
+  const handleSave = async () => {
+    if (!name.trim() || loading) return;
 
-    const newDiscipline: Discipline = {
-      id: Date.now().toString(),
-      name,
-      teacher: teacher.trim() || undefined,
-      color,
-      absences: 0,
-      workload: Number(workload) || 60,
-    };
-
-    addDiscipline(newDiscipline);
-    router.back();
+    setLoading(true);
+    try {
+      await addDiscipline({
+        name: name.trim(),
+        teacher: teacher.trim() || undefined,
+        color,
+        absences: 0,
+        workload: Number(workload) || 60,
+      });
+      router.back();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const presetColors = [COLORS.primaryLight, COLORS.accentPurple, COLORS.accentGreen, COLORS.accentOrange, COLORS.accentRedLight, COLORS.accentGray];
@@ -77,9 +80,9 @@ export default function NovaDisciplinaScreen() {
           </View>
 
           <PrimaryButton 
-            title="Salvar Matéria" 
+            title={loading ? "Salvando..." : "Salvar Matéria"} 
             onPress={handleSave} 
-            disabled={!name.trim()} 
+            disabled={!name.trim() || loading} 
           />
         </ScrollView>
       </KeyboardAvoidingView>

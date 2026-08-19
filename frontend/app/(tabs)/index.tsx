@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import TopAppBar from '@/components/TopAppBar';
@@ -18,6 +18,20 @@ export default function HomeScreen() {
   const schedules = useCampusStore(state => state.schedules);
   const tasks = useCampusStore(state => state.tasks);
   const exams = useCampusStore(state => state.exams);
+  const fetchData = useCampusStore(state => state.fetchData);
+  const isSyncing = useCampusStore(state => state.isSyncing);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const getDayOfWeek = () => {
     const today = new Date().getDay();
@@ -79,16 +93,20 @@ export default function HomeScreen() {
         dateStr={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
 
         {/* HERO SECTION */}
         <NowHappeningCard
-          title={currentDiscipline?.name || 'Estrutura de Dados Não-Lineares'}
-          startTime={currentClass?.startTime || '07:00'}
-          endTime={currentClass?.endTime || '10:20'}
-          room={currentClass?.room || 'Lab 04 - Bloco B'}
-          teacher={currentDiscipline?.teacher || 'Prof. Leandro Luttiane'}
-          isCurrent={true}
+          title={currentDiscipline?.name}
+          startTime={currentClass?.startTime}
+          endTime={currentClass?.endTime}
+          room={currentClass?.room}
+          teacher={currentDiscipline?.teacher}
+          isCurrent={Boolean(currentClass)}
           color={currentDiscipline?.color}
           onPressDetails={() => router.push('/(tabs)/calendario')}
           onPressAdd={() => router.push('/nova-disciplina')}

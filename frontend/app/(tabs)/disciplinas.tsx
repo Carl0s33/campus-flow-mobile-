@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import TopAppBar from '@/components/TopAppBar';
@@ -26,6 +26,18 @@ function calculateStatus(n1?: number, n2?: number): { text: string; color: strin
   return { text: 'Sem notas lançadas', color: '#6B7280' };
 }
 
+const PERIOD_FILTERS: { id: string | number; label: string }[] = [
+  { id: 'all', label: 'Todos' },
+  { id: 1, label: '1º Período' },
+  { id: 2, label: '2º Período' },
+  { id: 3, label: '3º Período' },
+  { id: 4, label: '4º Período' },
+  { id: 5, label: '5º Período' },
+  { id: 6, label: '6º Período' },
+  { id: 7, label: '7º Período' },
+  { id: 0, label: 'Optativas' },
+];
+
 export default function DisciplinasScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
@@ -33,12 +45,29 @@ export default function DisciplinasScreen() {
   const incrementAbsence = useCampusStore(state => state.incrementAbsence);
   const decrementAbsence = useCampusStore(state => state.decrementAbsence);
   const removeDiscipline = useCampusStore(state => state.removeDiscipline);
+  const updateDiscipline = useCampusStore(state => state.updateDiscipline);
   const setGrade = useCampusStore(state => state.setGrade);
+  const fetchData = useCampusStore(state => state.fetchData);
 
+  const [selectedPeriod, setSelectedPeriod] = useState<string | number>('all');
+  const [refreshing, setRefreshing] = useState(false);
   const [gradeModalVisible, setGradeModalVisible] = useState(false);
   const [editingDiscipline, setEditingDiscipline] = useState<string | null>(null);
+  const [teacherInput, setTeacherInput] = useState('');
   const [n1Input, setN1Input] = useState('');
   const [n2Input, setN2Input] = useState('');
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
+  const filteredDisciplines = disciplines.filter(d => {
+    if (selectedPeriod === 'all') return true;
+    if (selectedPeriod === 0) return d.period === 0 || d.period === null || d.period === undefined;
+    return d.period === selectedPeriod;
+  });
 
   const handleDelete = (id: string, name: string) => {
     Alert.alert(
@@ -57,20 +86,42 @@ export default function DisciplinasScreen() {
     <View style={styles.container}>
       <TopAppBar title="Minhas Matérias" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
         <View style={styles.header}>
           <View>
             <Text style={styles.pageTitle}>Minhas Matérias</Text>
-            <Text style={styles.pageSubtitle}>{disciplines.length} disciplinas em 2026.2</Text>
+            <Text style={styles.pageSubtitle}>{disciplines.length} disciplinas cadastradas</Text>
           </View>
           <TouchableOpacity style={styles.addButton} onPress={() => router.push('/nova-disciplina')} activeOpacity={0.8}>
             <Plus size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
-        {disciplines.length === 0 ? (
+        {/* SELETOR DE PERÍODO */}
+        <View style={styles.periodFilterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periodScroll}>
+            {PERIOD_FILTERS.map(period => (
+              <TouchableOpacity
+                key={String(period.id)}
+                style={[styles.periodChip, selectedPeriod === period.id && styles.periodChipActive]}
+                onPress={() => setSelectedPeriod(period.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.periodChipText, selectedPeriod === period.id && styles.periodChipTextActive]}>
+                  {period.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {filteredDisciplines.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>Sua grade de matérias está vazia</Text>
+            <Text style={styles.emptyTitle}>Nenhuma matéria neste período</Text>
             <Text style={styles.emptyText}>Cadastre suas matérias para organizar seus horários e faltas.</Text>
             <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/nova-disciplina')}>
               <Plus size={16} color="#FFFFFF" />
@@ -79,7 +130,7 @@ export default function DisciplinasScreen() {
           </View>
         ) : (
           <View style={styles.gridContainer}>
-            {disciplines.map((subject, idx) => {
+            {filteredDisciplines.map((subject, idx) => {
               const matteColor = subject.color || MATTE_COLORS[idx % MATTE_COLORS.length];
               const IconComp = SUBJECT_ICONS[idx % SUBJECT_ICONS.length];
               const maxAbsences = subject.workload ? Math.floor(subject.workload / 4) : 15;
@@ -161,12 +212,13 @@ export default function DisciplinasScreen() {
                       style={styles.addGradeBtn}
                       onPress={() => {
                         setEditingDiscipline(subject.id);
+                        setTeacherInput(subject.teacher || '');
                         setN1Input(subject.grades?.n1 !== undefined ? String(subject.grades.n1) : '');
                         setN2Input(subject.grades?.n2 !== undefined ? String(subject.grades.n2) : '');
                         setGradeModalVisible(true);
                       }}
                     >
-                      <Text style={styles.addGradeBtnText}>Lançar Notas</Text>
+                      <Text style={styles.addGradeBtnText}>Editar Docente / Notas</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -176,18 +228,29 @@ export default function DisciplinasScreen() {
         )}
       </ScrollView>
 
-      {/* MODAL DE NOTAS */}
+      {/* MODAL DE DOCENTE E NOTAS */}
       <Modal visible={gradeModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Lançar Notas</Text>
+              <Text style={styles.modalTitle}>Docente & Notas</Text>
               <TouchableOpacity onPress={() => setGradeModalVisible(false)}>
                 <X size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Professor / Docente</Text>
+                <TextInput
+                  style={styles.gradeInput}
+                  value={teacherInput}
+                  onChangeText={setTeacherInput}
+                  placeholder="Ex: Prof. Dr. Alan Turing"
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Nota 1 (Peso 2)</Text>
                 <TextInput
@@ -214,16 +277,17 @@ export default function DisciplinasScreen() {
 
             <TouchableOpacity
               style={styles.saveGradeBtn}
-              onPress={() => {
+              onPress={async () => {
                 if (editingDiscipline) {
                   const val1 = n1Input ? parseFloat(n1Input.replace(',', '.')) : undefined;
                   const val2 = n2Input ? parseFloat(n2Input.replace(',', '.')) : undefined;
-                  setGrade(editingDiscipline, isNaN(val1!) ? undefined : val1, isNaN(val2!) ? undefined : val2);
+                  await setGrade(editingDiscipline, isNaN(val1!) ? undefined : val1, isNaN(val2!) ? undefined : val2);
+                  await updateDiscipline(editingDiscipline, { teacher: teacherInput.trim() || undefined });
                 }
                 setGradeModalVisible(false);
               }}
             >
-              <Text style={styles.saveGradeBtnText}>Salvar Notas</Text>
+              <Text style={styles.saveGradeBtnText}>Salvar Informações</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -242,6 +306,30 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     addButton: {
       width: 44, height: 44, borderRadius: BORDER.radiusSm,
       backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', ...SHADOWS.postIt,
+    },
+    periodFilterContainer: { marginBottom: 18 },
+    periodScroll: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+    periodChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: BORDER.radiusSm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      ...SHADOWS.light,
+    },
+    periodChipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    periodChipText: {
+      fontFamily: FONTS.medium,
+      fontSize: SIZES.xs,
+      color: colors.textSecondary,
+    },
+    periodChipTextActive: {
+      color: '#FFFFFF',
+      fontFamily: FONTS.bold,
     },
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, justifyContent: 'space-between' },
     squareCard: {

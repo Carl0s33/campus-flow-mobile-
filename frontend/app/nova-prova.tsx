@@ -1,117 +1,162 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
-import { COLORS, FONTS, SIZES } from '@/constants/theme';
-import { Exam } from '@/types/campus';
+import { COLORS, FONTS, SIZES, BORDER } from '@/constants/theme';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { FormInput } from '@/components/FormInput';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { Layers, BookOpen } from 'lucide-react-native';
+
+const PERIOD_FILTERS: { id: string | number; label: string }[] = [
+  { id: 'all', label: 'Todos' },
+  { id: 1, label: '1º Período' },
+  { id: 2, label: '2º Período' },
+  { id: 3, label: '3º Período' },
+  { id: 4, label: '4º Período' },
+  { id: 5, label: '5º Período' },
+  { id: 6, label: '6º Período' },
+  { id: 7, label: '7º Período' },
+  { id: 0, label: 'Optativas' },
+];
 
 export default function NovaProvaScreen() {
   const router = useRouter();
   const addExam = useCampusStore(state => state.addExam);
   const disciplines = useCampusStore(state => state.disciplines);
+  const fetchData = useCampusStore(state => state.fetchData);
 
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const [selectedPeriod, setSelectedPeriod] = useState<string | number>('all');
   const [title, setTitle] = useState('');
   const [disciplineId, setDisciplineId] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [topics, setTopics] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    if (!title.trim() || !disciplineId || !date.trim() || !time.trim()) return;
+  const filteredDisciplines = disciplines.filter(d => {
+    if (selectedPeriod === 'all') return true;
+    if (selectedPeriod === 0) return d.period === 0 || d.period === null || d.period === undefined;
+    return d.period === selectedPeriod;
+  });
 
-    const newExam: Exam = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      disciplineId,
-      date: date.trim(),
-      time: time.trim(),
-      topics: topics.trim() || undefined,
-    };
+  const handleSave = async () => {
+    if (!title.trim() || !disciplineId || !date.trim() || !time.trim() || loading) return;
 
-    addExam(newExam);
-    router.back();
+    setLoading(true);
+    try {
+      await addExam({
+        title: title.trim(),
+        disciplineId,
+        date: date.trim(),
+        time: time.trim(),
+        topics: topics.trim() || undefined,
+      });
+      router.back();
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isFormValid = title.trim() && disciplineId && date.trim() && time.trim();
+  const isFormValid = title.trim() && disciplineId && date.trim() && time.trim() && !loading;
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Agendar Prova</Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.cancelText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader title="Agendar Prova" />
 
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Título da Prova</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: P1"
-              placeholderTextColor={COLORS.textTertiary}
-              value={title}
-              onChangeText={setTitle}
-            />
-          </View>
+          <FormInput
+            label="Título da Avaliação"
+            placeholder="Ex: Prova 1 (P1)"
+            value={title}
+            onChangeText={setTitle}
+          />
 
+          {/* FILTRO POR PERÍODO */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Disciplina</Text>
+            <View style={styles.labelRow}>
+              <Layers size={16} color={COLORS.primary} />
+              <Text style={styles.label}>Filtrar por Período</Text>
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-              {disciplines.length === 0 && <Text style={styles.hint}>Nenhuma matéria cadastrada.</Text>}
-              {disciplines.map(d => (
+              {PERIOD_FILTERS.map(period => (
                 <TouchableOpacity
-                  key={d.id}
-                  style={[styles.chip, disciplineId === d.id && styles.chipActive]}
-                  onPress={() => setDisciplineId(d.id)}
+                  key={String(period.id)}
+                  style={[styles.periodChip, selectedPeriod === period.id && styles.periodChipActive]}
+                  onPress={() => setSelectedPeriod(period.id)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.chipText, disciplineId === d.id && styles.chipTextActive]}>{d.name}</Text>
+                  <Text style={[styles.periodChipText, selectedPeriod === period.id && styles.periodChipTextActive]}>
+                    {period.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.formGroup, styles.flex]}>
-              <Text style={styles.label}>Data</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="AAAA-MM-DD"
-                placeholderTextColor={COLORS.textTertiary}
-                value={date}
-                onChangeText={setDate}
-              />
+          {/* SELEÇÃO DE DISCIPLINA */}
+          <View style={styles.formGroup}>
+            <View style={styles.labelRow}>
+              <BookOpen size={16} color={COLORS.primary} />
+              <Text style={styles.label}>Disciplina ({filteredDisciplines.length} disponíveis)</Text>
             </View>
-            <View style={[styles.formGroup, styles.flex]}>
-              <Text style={styles.label}>Horário</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="08:00"
-                placeholderTextColor={COLORS.textTertiary}
-                value={time}
-                onChangeText={setTime}
-              />
-            </View>
+            {filteredDisciplines.length === 0 ? (
+              <Text style={styles.hint}>Nenhuma matéria encontrada para este período.</Text>
+            ) : (
+              <View style={styles.chipsWrap}>
+                {filteredDisciplines.map(d => {
+                  const isSelected = disciplineId === d.id;
+                  return (
+                    <TouchableOpacity
+                      key={d.id}
+                      style={[styles.chip, isSelected && styles.chipActive]}
+                      onPress={() => setDisciplineId(d.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.colorDot, { backgroundColor: d.color || COLORS.primary }]} />
+                      <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>{d.name}</Text>
+                      {d.code && <Text style={[styles.codeSubtext, isSelected && styles.codeSubtextActive]}>({d.code})</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Assuntos / Conteúdo (Opcional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Descreva o conteúdo que cairá na prova..."
-              placeholderTextColor={COLORS.textTertiary}
-              value={topics}
-              onChangeText={setTopics}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
+          <View style={styles.row}>
+            <FormInput
+              wrapperStyle={styles.flex}
+              label="Data da Prova"
+              placeholder="AAAA-MM-DD"
+              value={date}
+              onChangeText={setDate}
+            />
+            <FormInput
+              wrapperStyle={styles.flex}
+              label="Horário"
+              placeholder="08:00"
+              value={time}
+              onChangeText={setTime}
             />
           </View>
 
-          <TouchableOpacity style={[styles.saveBtn, !isFormValid && styles.saveBtnDisabled]} onPress={handleSave} disabled={!isFormValid}>
-            <Text style={styles.saveBtnText}>Salvar Prova</Text>
-          </TouchableOpacity>
+          <FormInput
+            label="Conteúdo / Tópicos (Opcional)"
+            placeholder="Ex: Árvores Binárias, AVL e Grafos"
+            value={topics}
+            onChangeText={setTopics}
+          />
+
+          <PrimaryButton 
+            title={loading ? "Salvando..." : "Salvar Prova"} 
+            onPress={handleSave} 
+            disabled={!isFormValid} 
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -121,22 +166,70 @@ export default function NovaProvaScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
-  headerTitle: { fontFamily: FONTS.bold, fontSize: SIZES.lg, color: COLORS.textPrimary },
-  cancelText: { fontFamily: FONTS.medium, fontSize: SIZES.md, color: COLORS.textSecondary },
-  content: { padding: 20, gap: 24 },
+  content: { padding: 20, gap: 20 },
   formGroup: { gap: 8 },
-  row: { flexDirection: 'row', gap: 16 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: COLORS.textPrimary },
-  input: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontFamily: FONTS.regular, fontSize: SIZES.md, color: COLORS.textPrimary },
-  textArea: { height: 100 },
-  horizontalScroll: { gap: 8 },
-  hint: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: COLORS.textTertiary },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 9999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontFamily: FONTS.medium, fontSize: SIZES.sm, color: COLORS.textSecondary },
-  chipTextActive: { color: COLORS.surface },
-  saveBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { fontFamily: FONTS.bold, fontSize: SIZES.md, color: COLORS.surface },
+  horizontalScroll: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 4 },
+  hint: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: COLORS.textTertiary, paddingVertical: 8 },
+  periodChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BORDER.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+  },
+  periodChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  periodChipText: {
+    fontFamily: FONTS.medium,
+    fontSize: SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  periodChipTextActive: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    gap: 6,
+  },
+  chipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  chipText: {
+    fontFamily: FONTS.medium,
+    fontSize: SIZES.sm,
+    color: COLORS.textPrimary,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+  },
+  codeSubtext: {
+    fontFamily: FONTS.regular,
+    fontSize: 11,
+    color: COLORS.textTertiary,
+  },
+  codeSubtextActive: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  row: { flexDirection: 'row', gap: 16 },
 });
