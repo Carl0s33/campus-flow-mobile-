@@ -4,7 +4,7 @@ Campus Flow Mobile 📱
 
 O **Campus Flow Mobile** é o cliente frontend do ecossistema Campus Flow, desenvolvido em React Native e Expo. Ele atua como um organizador acadêmico completo e centralizado, focado em reduzir a carga cognitiva diária e otimizar a rotina universitária, especialmente desenhado para lidar com grades curriculares densas como a de Análise e Desenvolvimento de Sistemas (TADS).
 
-> **Aviso de Ecossistema:** Este repositório contém apenas o aplicativo Mobile. Para a infraestrutura de backend e banco de dados, consulte o repositório irmão: [Campus Flow API](https://github.com/carl0s33/campus-flow-api) (Substitua pelo link real do seu repositório).
+> **Aviso de Ecossistema:** Este repositório contém apenas o aplicativo Mobile. Para a infraestrutura de backend e banco de dados, consulte o repositório irmão: [Campus Flow API](https://github.com/carl0s33/campus-flow-api)
 
 Atualmente, este repositório abriga a aplicação em seu estágio de Produto Mínimo Viável (MVP). Os dados operam em memória (in-memory) via *seed data*, servindo como uma demonstração funcional dos fluxos de interface antes da integração total com a API.
 
