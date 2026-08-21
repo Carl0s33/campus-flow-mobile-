@@ -10,7 +10,14 @@ export interface Discipline {
   grades?: {
     n1?: number;
     n2?: number;
+    recoveryGrade?: number;
   };
+  pomodoroCount?: number;
+  finalGrade?: number;
+  statusText?: string;
+  statusColor?: string;
+  isApproved?: boolean;
+  inRecovery?: boolean;
 }
 
 export interface Schedule {
@@ -29,6 +36,7 @@ export interface Task {
   dueDate: string;
   completed: boolean;
   type: 'trabalho' | 'atividade';
+  pomodoroCount?: number;
 }
 
 export interface Exam {

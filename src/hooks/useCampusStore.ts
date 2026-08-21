@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Discipline, Schedule, Task, Exam } from '@/types/campus';
 import { disciplineApi, scheduleApi, taskApi, examApi, DisciplineDTO, TaskDTO, ExamDTO, ScheduleDTO } from '@/services/api';
 
@@ -12,6 +14,10 @@ interface CampusState {
   isLoading: boolean;
   isSyncing: boolean;
   error: string | null;
+  pendingPomodoros: { type: 'task' | 'discipline'; id: string }[];
+  
+  // Ações de fila
+  removePendingPomodoro: (index: number) => void;
   
   // Ações de sincronização
   fetchData: () => Promise<void>;
@@ -20,7 +26,7 @@ interface CampusState {
   addDiscipline: (discipline: Omit<Discipline, 'id'> & { id?: string }) => Promise<Discipline | undefined>;
   updateDiscipline: (id: string, data: Partial<Discipline>) => Promise<Discipline | undefined>;
   removeDiscipline: (id: string) => Promise<void>;
-  setGrade: (id: string, n1?: number, n2?: number) => Promise<void>;
+  setGrade: (id: string, n1?: number, n2?: number, recoveryGrade?: number) => Promise<void>;
   incrementAbsence: (id: string) => Promise<void>;
   decrementAbsence: (id: string) => Promise<void>;
   
@@ -36,6 +42,10 @@ interface CampusState {
   // Ações de Provas
   addExam: (exam: Omit<Exam, 'id'> & { id?: string }) => Promise<Exam | undefined>;
   removeExam: (id: string) => Promise<void>;
+
+  // Ações de Pomodoro
+  incrementTaskPomodoro: (id: string) => Promise<void>;
+  incrementDisciplinePomodoro: (id: string) => Promise<void>;
 }
 
 // Conversores de DTO para modelos de visualização do app
@@ -49,7 +59,15 @@ function dtoToDiscipline(dto: DisciplineDTO): Discipline {
     absences: dto.absences ?? 0,
     workload: dto.workload ?? 60,
     period: dto.period,
-    grades: (dto.n1 !== undefined || dto.n2 !== undefined) ? { n1: dto.n1, n2: dto.n2 } : undefined,
+    grades: (dto.n1 !== undefined || dto.n2 !== undefined || dto.recoveryGrade !== undefined) 
+      ? { n1: dto.n1, n2: dto.n2, recoveryGrade: dto.recoveryGrade } 
+      : undefined,
+    pomodoroCount: dto.pomodoroCount ?? 0,
+    finalGrade: dto.finalGrade,
+    statusText: dto.statusText,
+    statusColor: dto.statusColor,
+    isApproved: dto.isApproved,
+    inRecovery: dto.inRecovery,
   };
 }
 
@@ -72,6 +90,7 @@ function dtoToTask(dto: TaskDTO): Task {
     dueDate: dto.dueDate,
     completed: Boolean(dto.completed),
     type: (dto.type === 'trabalho' ? 'trabalho' : 'atividade') as 'trabalho' | 'atividade',
+    pomodoroCount: dto.pomodoroCount ?? 0,
   };
 }
 
@@ -88,16 +107,27 @@ function dtoToExam(dto: ExamDTO): Exam {
 
 import { ALL_TADS_DISCIPLINES } from '@/constants/tadsDisciplines';
 
-export const useCampusStore = create<CampusState>((set, get) => ({
-  userName: 'Carlos Eduardo',
-  matricula: '20241134040016',
-  disciplines: ALL_TADS_DISCIPLINES,
-  schedules: [],
-  tasks: [],
-  exams: [],
-  isLoading: false,
-  isSyncing: false,
-  error: null,
+export const useCampusStore = create<CampusState>()(
+  persist(
+    (set, get) => ({
+      userName: 'Carlos Eduardo',
+      matricula: '20241134040016',
+      disciplines: ALL_TADS_DISCIPLINES,
+      schedules: [],
+      tasks: [],
+      exams: [],
+      isLoading: false,
+      isSyncing: false,
+      error: null,
+      pendingPomodoros: [],
+
+      removePendingPomodoro: (index: number) => {
+        set((state) => {
+          const newPending = [...state.pendingPomodoros];
+          newPending.splice(index, 1);
+          return { pendingPomodoros: newPending };
+        });
+      },
 
   fetchData: async () => {
     set({ isSyncing: true, error: null });
@@ -159,6 +189,7 @@ export const useCampusStore = create<CampusState>((set, get) => ({
         period: discipline.period,
         n1: discipline.grades?.n1,
         n2: discipline.grades?.n2,
+        recoveryGrade: discipline.grades?.recoveryGrade,
       });
 
       const formatted = dtoToDiscipline(created);
@@ -194,6 +225,7 @@ export const useCampusStore = create<CampusState>((set, get) => ({
         period: data.period ?? current?.period,
         n1: data.grades?.n1 ?? current?.grades?.n1,
         n2: data.grades?.n2 ?? current?.grades?.n2,
+        recoveryGrade: data.grades?.recoveryGrade ?? current?.grades?.recoveryGrade,
       });
       const formatted = dtoToDiscipline(updated);
       set((state) => ({
@@ -222,15 +254,23 @@ export const useCampusStore = create<CampusState>((set, get) => ({
     }
   },
 
-  setGrade: async (id, n1, n2) => {
+  setGrade: async (id, n1, n2, recoveryGrade) => {
     set((state) => ({
       disciplines: state.disciplines.map(d =>
-        d.id === id ? { ...d, grades: { ...d.grades, n1: n1 ?? d.grades?.n1, n2: n2 ?? d.grades?.n2 } } : d
+        d.id === id ? { 
+          ...d, 
+          grades: { 
+            ...d.grades, 
+            n1: n1 ?? d.grades?.n1, 
+            n2: n2 ?? d.grades?.n2,
+            recoveryGrade: recoveryGrade ?? d.grades?.recoveryGrade 
+          } 
+        } : d
       )
     }));
 
     try {
-      await disciplineApi.updateGrades(id, n1, n2);
+      await disciplineApi.updateGrades(id, n1, n2, recoveryGrade);
     } catch (err: any) {
       console.warn('Erro ao atualizar notas no backend:', err.message);
     }
@@ -385,4 +425,41 @@ export const useCampusStore = create<CampusState>((set, get) => ({
       console.warn('Erro ao remover prova no backend:', err.message);
     }
   },
-}));
+
+  // -------------------------------------------------------------
+  // POMODORO (FOCUS METRICS)
+  // -------------------------------------------------------------
+  incrementTaskPomodoro: async (id) => {
+    set((state) => ({
+      tasks: state.tasks.map(t => t.id === id ? { ...t, pomodoroCount: (t.pomodoroCount || 0) + 1 } : t)
+    }));
+    try {
+      await taskApi.incrementPomodoro(id);
+    } catch (err: any) {
+      console.warn('Erro ao incrementar pomodoro na tarefa, adicionando à fila:', err.message);
+      set((state) => ({
+        pendingPomodoros: [...state.pendingPomodoros, { type: 'task', id }]
+      }));
+    }
+  },
+
+  incrementDisciplinePomodoro: async (id) => {
+    set((state) => ({
+      disciplines: state.disciplines.map(d => d.id === id ? { ...d, pomodoroCount: (d.pomodoroCount || 0) + 1 } : d)
+    }));
+    try {
+      await disciplineApi.incrementPomodoro(id);
+    } catch (err: any) {
+      console.warn('Erro ao incrementar pomodoro na disciplina, adicionando à fila:', err.message);
+      set((state) => ({
+        pendingPomodoros: [...state.pendingPomodoros, { type: 'discipline', id }]
+      }));
+    }
+  },
+    }),
+    {
+      name: 'campus-flow-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);

@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Clock, MapPin, User, Calendar as CalendarIcon, CheckSquare, AlertCircle } from 'lucide-react-native';
 import { formatDueDate, isDueToday } from '@/utils/dateHelpers';
 import { requestNotificationPermissions, scheduleClassReminder } from '@/hooks/useNotifications';
+import { Atom, TrendingUp } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -81,7 +82,24 @@ export default function HomeScreen() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const nextExam = upcomingExams[0];
 
+  // Métrica 1: Faltas Totais
   const totalAbsences = disciplines.reduce((acc, curr) => acc + curr.absences, 0);
+
+  // Métrica 2: IRA (Índice de Rendimento Acadêmico) ponderado por workload
+  let totalIraSum = 0;
+  let totalWorkload = 0;
+  disciplines.forEach(d => {
+    if (d.finalGrade && d.finalGrade > 0 && d.workload) {
+      totalIraSum += d.finalGrade * d.workload;
+      totalWorkload += d.workload;
+    }
+  });
+  const iraGlobal = totalWorkload > 0 ? (totalIraSum / totalWorkload).toFixed(2) : '-';
+
+  // Métrica 3: Total de Pomodoros (Tempo de Foco)
+  const disciplinePomodoros = disciplines.reduce((acc, curr) => acc + (curr.pomodoroCount || 0), 0);
+  const taskPomodoros = tasks.reduce((acc, curr) => acc + (curr.pomodoroCount || 0), 0);
+  const totalPomodoros = disciplinePomodoros + taskPomodoros;
 
   const styles = makeStyles(colors, isDark);
 
@@ -126,12 +144,21 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={[styles.statCard, { backgroundColor: colors.surface }]}
-            onPress={() => router.push('/(tabs)/agenda')}
             activeOpacity={0.8}
           >
-            <CheckSquare size={18} color={colors.mattePink} />
-            <Text style={[styles.statNumber, { color: colors.mattePink }]}>{pendingTasks.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.mattePink }]}>Tarefas</Text>
+            <TrendingUp size={18} color={colors.primary} />
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{iraGlobal}</Text>
+            <Text style={[styles.statLabel, { color: colors.primary }]}>I.R.A.</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.statsRow, { marginTop: -12 }]}>
+          <TouchableOpacity
+            style={[styles.statCard, { backgroundColor: colors.surface }]}
+            activeOpacity={0.8}
+          >
+            <Atom size={18} color={colors.mattePink} />
+            <Text style={[styles.statNumber, { color: colors.mattePink }]}>{totalPomodoros}</Text>
+            <Text style={[styles.statLabel, { color: colors.mattePink }]}>Ciclos Pomodoro</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

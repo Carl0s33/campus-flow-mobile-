@@ -3,23 +3,40 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Play, Pause, X, RotateCcw } from 'lucide-react-native';
 import { FONTS, SIZES, BORDER, SHADOWS } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useCampusStore } from '@/hooks/useCampusStore';
 
 interface PomodoroModalProps {
   visible: boolean;
   onClose: () => void;
   taskTitle: string;
+  taskId?: string;
+  disciplineId?: string;
 }
 
 const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
 
-export default function PomodoroModal({ visible, onClose, taskTitle }: PomodoroModalProps) {
+export default function PomodoroModal({ visible, onClose, taskTitle, taskId, disciplineId }: PomodoroModalProps) {
   const { colors, isDark } = useTheme();
   const styles = makeStyles(colors, isDark);
+  
+  const incrementTaskPomodoro = useCampusStore(state => state.incrementTaskPomodoro);
+  const incrementDisciplinePomodoro = useCampusStore(state => state.incrementDisciplinePomodoro);
 
   const [timeLeft, setTimeLeft] = useState(POMODORO_TIME);
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
+  const [cyclesCompleted, setCyclesCompleted] = useState(0);
+
+  // Zera ciclos ao abrir novo modal
+  useEffect(() => {
+    if (visible) {
+      setCyclesCompleted(0);
+      setTimeLeft(POMODORO_TIME);
+      setIsBreak(false);
+      setIsRunning(false);
+    }
+  }, [visible]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -28,6 +45,15 @@ export default function PomodoroModal({ visible, onClose, taskTitle }: PomodoroM
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (isRunning && timeLeft === 0) {
+      if (!isBreak) {
+        // Um ciclo de foco foi completado
+        setCyclesCompleted(prev => prev + 1);
+        if (taskId) {
+          incrementTaskPomodoro(taskId);
+        } else if (disciplineId) {
+          incrementDisciplinePomodoro(disciplineId);
+        }
+      }
       // Switch mode
       setIsBreak(!isBreak);
       setTimeLeft(!isBreak ? BREAK_TIME : POMODORO_TIME);
@@ -55,8 +81,13 @@ export default function PomodoroModal({ visible, onClose, taskTitle }: PomodoroM
             <X size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           
+          
           <Text style={styles.headerTitle}>{isBreak ? '☕ Pausa Curta' : '🧠 Tempo de Foco'}</Text>
           <Text style={styles.taskTitle} numberOfLines={2}>Alvo: {taskTitle}</Text>
+          
+          <View style={styles.cyclesBadge}>
+             <Text style={styles.cyclesText}>{cyclesCompleted} ciclos concluídos</Text>
+          </View>
 
           <View style={styles.timerContainer}>
             <Text style={styles.timeText}>{minutes}:{seconds}</Text>
@@ -94,7 +125,9 @@ function makeStyles(colors: any, isDark: boolean) {
     modalContent: { backgroundColor: colors.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, alignItems: 'center', ...SHADOWS.light, minHeight: 400 },
     closeBtn: { position: 'absolute', top: 24, right: 24 },
     headerTitle: { fontFamily: FONTS.bold, fontSize: SIZES.lg, color: colors.textPrimary, marginBottom: 8, marginTop: 12 },
-    taskTitle: { fontFamily: FONTS.medium, fontSize: SIZES.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: 32 },
+    taskTitle: { fontFamily: FONTS.medium, fontSize: SIZES.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: 12 },
+    cyclesBadge: { backgroundColor: 'rgba(96, 165, 250, 0.15)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, marginBottom: 24 },
+    cyclesText: { fontFamily: FONTS.bold, fontSize: SIZES.xs, color: '#3B82F6' },
     timerContainer: { width: 220, height: 220, borderRadius: 110, borderWidth: 8, borderColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 40 },
     timeText: { fontFamily: FONTS.bold, fontSize: 48, color: colors.textPrimary },
     controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 32 },

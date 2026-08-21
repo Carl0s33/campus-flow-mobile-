@@ -7,24 +7,9 @@ import { MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } fro
 import { useTheme } from '@/hooks/useTheme';
 import { Plus, BookOpen, Code, Cpu, Calculator, Compass, Atom, Trash2, AlertTriangle, GraduationCap, X } from 'lucide-react-native';
 import { scheduleAbsenceWarning } from '@/hooks/useNotifications';
+import PomodoroModal from '@/components/PomodoroModal';
 
 const SUBJECT_ICONS = [Code, BookOpen, Calculator, Cpu, Compass, Atom];
-
-function calculateStatus(n1?: number, n2?: number): { text: string; color: string } {
-  if (n1 !== undefined && n2 !== undefined) {
-    const media = (n1 * 2 + n2 * 3) / 5;
-    if (media >= 6) return { text: `Média: ${media.toFixed(1)} - Aprovado`, color: '#10B981' };
-    return { text: `Média: ${media.toFixed(1)} - Prova Final`, color: '#EF4444' };
-  } else if (n1 !== undefined) {
-    const requiredN2 = (30 - n1 * 2) / 3;
-    if (requiredN2 <= 10) {
-      return { text: `Precisa de ${requiredN2.toFixed(1)} na N2`, color: '#F59E0B' };
-    } else {
-      return { text: `Reprovado (N2 inviável)`, color: '#EF4444' };
-    }
-  }
-  return { text: 'Sem notas lançadas', color: '#6B7280' };
-}
 
 const PERIOD_FILTERS: { id: string | number; label: string }[] = [
   { id: 'all', label: 'Todos' },
@@ -56,6 +41,10 @@ export default function DisciplinasScreen() {
   const [teacherInput, setTeacherInput] = useState('');
   const [n1Input, setN1Input] = useState('');
   const [n2Input, setN2Input] = useState('');
+  const [recoveryInput, setRecoveryInput] = useState('');
+  
+  const [pomodoroModalVisible, setPomodoroModalVisible] = useState(false);
+  const [pomodoroSubject, setPomodoroSubject] = useState<{ id: string; name: string } | null>(null);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -161,13 +150,30 @@ export default function DisciplinasScreen() {
                     )}
                     <Text style={[styles.subjectTitle, { color: cardTextColor }]} numberOfLines={2}>{subject.name}</Text>
                     <Text style={[styles.professorText, { color: cardTextColor }]} numberOfLines={1}>{subject.teacher || 'Professor a definir'}</Text>
+                    
+                    {/* Pomodoro Solto */}
+                    <TouchableOpacity 
+                      style={[styles.pomodoroBtn, { backgroundColor: 'rgba(0,0,0,0.1)' }]}
+                      onPress={() => {
+                        setPomodoroSubject({ id: subject.id, name: subject.name });
+                        setPomodoroModalVisible(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Atom size={12} color={cardTextColor} />
+                        <Text style={[styles.pomodoroBtnText, { color: cardTextColor }]}>
+                          Foco: {subject.pomodoroCount || 0} ciclos
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={[styles.absenceRow, isWarning && styles.absenceRowWarning]}>
                     <View style={styles.absenceInfo}>
                       {isWarning && <AlertTriangle size={12} color="#EF4444" />}
                       <Text style={[styles.absenceCount, { color: cardTextColor }, isWarning && styles.absenceCountWarning]}>
-                        {subject.absences} / {maxAbsences} {subject.absences === 1 ? 'falta' : 'faltas'}
+                        Faltas: {subject.absences} / {maxAbsences} ({Math.round((subject.absences/maxAbsences)*100)}%)
                       </Text>
                     </View>
                     <View style={styles.absenceActions}>
@@ -205,8 +211,8 @@ export default function DisciplinasScreen() {
                       <GraduationCap size={14} color={cardTextColor} />
                       <Text style={[styles.gradesTitle, { color: cardTextColor }]}>Situação (Notas)</Text>
                     </View>
-                    <Text style={[styles.gradesStatus, { color: calculateStatus(subject.grades?.n1, subject.grades?.n2).color }]}>
-                      {calculateStatus(subject.grades?.n1, subject.grades?.n2).text}
+                    <Text style={[styles.gradesStatus, { color: subject.statusColor || '#6B7280' }]}>
+                      {subject.statusText || 'Sem notas lançadas'}
                     </Text>
                     <TouchableOpacity
                       style={styles.addGradeBtn}
@@ -215,6 +221,7 @@ export default function DisciplinasScreen() {
                         setTeacherInput(subject.teacher || '');
                         setN1Input(subject.grades?.n1 !== undefined ? String(subject.grades.n1) : '');
                         setN2Input(subject.grades?.n2 !== undefined ? String(subject.grades.n2) : '');
+                        setRecoveryInput(subject.grades?.recoveryGrade !== undefined ? String(subject.grades.recoveryGrade) : '');
                         setGradeModalVisible(true);
                       }}
                     >
@@ -273,6 +280,21 @@ export default function DisciplinasScreen() {
                   placeholderTextColor={colors.textTertiary}
                 />
               </View>
+
+              {/* Show recovery input only if N1 and N2 are present and average < 6 */}
+              {n1Input && n2Input && ((parseFloat(n1Input.replace(',','.')) * 2 + parseFloat(n2Input.replace(',','.')) * 3) / 5) < 6 && (
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: '#F59E0B' }]}>Prova Final (Recuperação)</Text>
+                  <TextInput
+                    style={[styles.gradeInput, { borderColor: '#F59E0B' }]}
+                    keyboardType="numeric"
+                    value={recoveryInput}
+                    onChangeText={setRecoveryInput}
+                    placeholder="0.0 a 10.0"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </View>
+              )}
             </View>
 
             <TouchableOpacity
@@ -281,7 +303,8 @@ export default function DisciplinasScreen() {
                 if (editingDiscipline) {
                   const val1 = n1Input ? parseFloat(n1Input.replace(',', '.')) : undefined;
                   const val2 = n2Input ? parseFloat(n2Input.replace(',', '.')) : undefined;
-                  await setGrade(editingDiscipline, isNaN(val1!) ? undefined : val1, isNaN(val2!) ? undefined : val2);
+                  const valRec = recoveryInput ? parseFloat(recoveryInput.replace(',', '.')) : undefined;
+                  await setGrade(editingDiscipline, isNaN(val1!) ? undefined : val1, isNaN(val2!) ? undefined : val2, isNaN(valRec!) ? undefined : valRec);
                   await updateDiscipline(editingDiscipline, { teacher: teacherInput.trim() || undefined });
                 }
                 setGradeModalVisible(false);
@@ -292,6 +315,14 @@ export default function DisciplinasScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL DE POMODORO SOLTO */}
+      <PomodoroModal 
+        visible={pomodoroModalVisible}
+        onClose={() => setPomodoroModalVisible(false)}
+        taskTitle={pomodoroSubject?.name || 'Disciplina'}
+        disciplineId={pomodoroSubject?.id}
+      />
     </View>
   );
 }
@@ -348,6 +379,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     codeText: { fontFamily: FONTS.bold, fontSize: SIZES.xs, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.7 },
     subjectTitle: { fontFamily: FONTS.bold, fontSize: SIZES.sm, lineHeight: 18 },
     professorText: { fontFamily: FONTS.semiBold, fontSize: SIZES.xs, opacity: 0.8 },
+    pomodoroBtn: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 4, marginTop: 4 },
+    pomodoroBtnText: { fontFamily: FONTS.bold, fontSize: 10 },
     absenceRow: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       backgroundColor: 'rgba(0,0,0,0.07)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: BORDER.radiusSm,

@@ -65,6 +65,13 @@ export interface DisciplineDTO {
   period?: number;
   n1?: number;
   n2?: number;
+  recoveryGrade?: number;
+  pomodoroCount?: number;
+  finalGrade?: number;
+  statusText?: string;
+  statusColor?: string;
+  isApproved?: boolean;
+  inRecovery?: boolean;
 }
 
 export const disciplineApi = {
@@ -85,14 +92,18 @@ export const disciplineApi = {
       method: 'PATCH',
       body: JSON.stringify({ absences }),
     }),
-  updateGrades: (id: string, n1?: number, n2?: number) =>
+  updateGrades: (id: string, n1?: number, n2?: number, recoveryGrade?: number) =>
     request<DisciplineDTO>(`/disciplines/${id}/grades`, {
       method: 'PATCH',
-      body: JSON.stringify({ n1, n2 }),
+      body: JSON.stringify({ n1, n2, recoveryGrade }),
     }),
   delete: (id: string) =>
     request<void>(`/disciplines/${id}`, {
       method: 'DELETE',
+    }),
+  incrementPomodoro: (id: string) =>
+    request<DisciplineDTO>(`/disciplines/${id}/pomodoro`, {
+      method: 'PATCH',
     }),
 };
 
@@ -138,6 +149,7 @@ export interface TaskDTO {
   completed?: boolean;
   disciplineId: string;
   disciplineName?: string;
+  pomodoroCount?: number;
 }
 
 export const taskApi = {
@@ -163,6 +175,10 @@ export const taskApi = {
   delete: (id: string) =>
     request<void>(`/tasks/${id}`, {
       method: 'DELETE',
+    }),
+  incrementPomodoro: (id: string) =>
+    request<TaskDTO>(`/tasks/${id}/pomodoro`, {
+      method: 'PATCH',
     }),
 };
 

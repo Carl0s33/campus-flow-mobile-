@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Clock, Plus, CheckCircle2, Circle, Trash2 } from 'lucide-react-native';
 import { formatDueDate, isDueToday } from '@/utils/dateHelpers';
 import PomodoroModal from '@/components/PomodoroModal';
+import { Play } from 'lucide-react-native';
 
 const FILTER_OPTIONS: { key: 'todos' | 'trabalho' | 'atividade'; label: string }[] = [
   { key: 'todos', label: 'Todas' },
@@ -27,7 +28,7 @@ export default function AgendaScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [pomodoroVisible, setPomodoroVisible] = useState(false);
-  const [selectedTaskTitle, setSelectedTaskTitle] = useState('');
+  const [selectedTask, setSelectedTask] = useState<{ id: string; title: string } | null>(null);
 
   const [filterType, setFilterType] = useState<'todos' | 'trabalho' | 'atividade'>('todos');
 
@@ -62,8 +63,8 @@ export default function AgendaScreen() {
     );
   };
 
-  const handleOpenPomodoro = (title: string) => {
-    setSelectedTaskTitle(title);
+  const handleOpenPomodoro = (id: string, title: string) => {
+    setSelectedTask({ id, title });
     setPomodoroVisible(true);
   };
 
@@ -136,14 +137,21 @@ export default function AgendaScreen() {
                   renderRightActions={() => renderRightActions(task.id, task.title)}
                   onSwipeableLeftOpen={() => toggleTask(task.id)}
                 >
-                  <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenPomodoro(task.title)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
+                  <TouchableOpacity activeOpacity={0.9} onPress={() => toggleTask(task.id)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
                     <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleTask(task.id); }} style={styles.checkboxTouch}>
                       <Circle size={22} color="#111827" />
                     </TouchableOpacity>
                     <View style={styles.taskMainInfo}>
                       <Text style={styles.taskTitle}>{task.title}</Text>
-                      <View style={styles.subjectTag}>
-                        <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <View style={styles.subjectTag}>
+                          <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                        </View>
+                        {task.pomodoroCount !== undefined && task.pomodoroCount > 0 && (
+                          <View style={[styles.subjectTag, { backgroundColor: 'rgba(255,255,255,0.4)' }]}>
+                            <Text style={styles.subjectTagText}>{task.pomodoroCount} ciclos</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                     <View style={styles.rightActionCol}>
@@ -153,6 +161,14 @@ export default function AgendaScreen() {
                           {formatDueDate(task.dueDate)}
                         </Text>
                       </View>
+                      <TouchableOpacity
+                        style={styles.pomodoroPlayBtn}
+                        onPress={(e) => { e.stopPropagation(); handleOpenPomodoro(task.id, task.title); }}
+                        activeOpacity={0.8}
+                      >
+                        <Play size={14} color="#111827" fill="#111827" />
+                        <Text style={styles.pomodoroPlayBtnText}>Foco</Text>
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 </Swipeable>
@@ -179,14 +195,21 @@ export default function AgendaScreen() {
                   renderRightActions={() => renderRightActions(task.id, task.title)}
                   onSwipeableLeftOpen={() => toggleTask(task.id)}
                 >
-                  <TouchableOpacity activeOpacity={0.9} onPress={() => handleOpenPomodoro(task.title)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
+                  <TouchableOpacity activeOpacity={0.9} onPress={() => toggleTask(task.id)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
                     <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleTask(task.id); }} style={styles.checkboxTouch}>
                       <Circle size={22} color="#111827" />
                     </TouchableOpacity>
                     <View style={styles.taskMainInfo}>
                       <Text style={styles.taskTitle}>{task.title}</Text>
-                      <View style={styles.subjectTag}>
-                        <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <View style={styles.subjectTag}>
+                          <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                        </View>
+                        {task.pomodoroCount !== undefined && task.pomodoroCount > 0 && (
+                          <View style={[styles.subjectTag, { backgroundColor: 'rgba(255,255,255,0.4)' }]}>
+                            <Text style={styles.subjectTagText}>{task.pomodoroCount} ciclos</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                     <View style={styles.rightActionCol}>
@@ -196,6 +219,14 @@ export default function AgendaScreen() {
                           {formatDueDate(task.dueDate)}
                         </Text>
                       </View>
+                      <TouchableOpacity
+                        style={styles.pomodoroPlayBtn}
+                        onPress={(e) => { e.stopPropagation(); handleOpenPomodoro(task.id, task.title); }}
+                        activeOpacity={0.8}
+                      >
+                        <Play size={14} color="#111827" fill="#111827" />
+                        <Text style={styles.pomodoroPlayBtnText}>Foco</Text>
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 </Swipeable>
@@ -228,7 +259,8 @@ export default function AgendaScreen() {
       <PomodoroModal 
         visible={pomodoroVisible} 
         onClose={() => setPomodoroVisible(false)} 
-        taskTitle={selectedTaskTitle} 
+        taskTitle={selectedTask?.title || 'Tarefa'} 
+        taskId={selectedTask?.id}
       />
     </View>
   );
@@ -273,6 +305,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     dueCol: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     dueDateUrgent: { fontFamily: FONTS.bold, fontSize: SIZES.xs, color: '#EF4444' },
     dueDateNormal: { fontFamily: FONTS.medium, fontSize: SIZES.xs, color: '#374151' },
+    pomodoroPlayBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999 },
+    pomodoroPlayBtnText: { fontFamily: FONTS.bold, fontSize: 10, color: '#111827' },
     completedCard: { backgroundColor: colors.surface, opacity: 0.65 },
     completedText: { textDecorationLine: 'line-through', color: colors.textSecondary },
     leftAction: {
