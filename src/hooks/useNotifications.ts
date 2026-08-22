@@ -1,7 +1,34 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-if (Platform.OS !== 'web') {
+let Notifications: any = null;
+
+try {
+  // Em Expo Go no Android (SDK 53+), expo-notifications pode causar um crash.
+  // Carregamos condicionalmente para evitar o fechamento do app.
+  if (Platform.OS === 'android' && Constants.appOwnership === 'expo') {
+    console.warn('Push notifications nativas desativadas no Expo Go Android (SDK 53+)');
+  } else {
+    Notifications = require('expo-notifications');
+  }
+} catch (e) {
+  console.warn('Erro ao carregar expo-notifications', e);
+}
+
+// Mock de fallback para evitar que o resto do código quebre
+if (!Notifications) {
+  Notifications = {
+    setNotificationHandler: () => {},
+    getPermissionsAsync: async () => ({ status: 'undetermined' }),
+    requestPermissionsAsync: async () => ({ status: 'undetermined' }),
+    setNotificationChannelAsync: async () => {},
+    scheduleNotificationAsync: async () => {},
+    AndroidImportance: { MAX: 5 },
+    SchedulableTriggerInputTypes: { TIME_INTERVAL: 1 }
+  };
+}
+
+if (Platform.OS !== 'web' && typeof Notifications.setNotificationHandler === 'function') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,

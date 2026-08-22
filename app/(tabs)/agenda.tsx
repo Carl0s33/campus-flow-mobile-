@@ -289,8 +289,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     section: { marginBottom: 28 },
     sectionTitle: { fontFamily: FONTS.bold, fontSize: SIZES.lg, color: colors.textPrimary, marginBottom: 12 },
     taskMatteCard: {
-      flexDirection: 'row', alignItems: 'center', borderRadius: BORDER.radiusLg,
-      padding: 16, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)',
+      flexDirection: 'row', alignItems: 'center', borderRadius: 16,
+      padding: 16, marginBottom: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.08)',
       gap: 12, ...SHADOWS.postIt,
     },
     checkboxTouch: { padding: 2 },
@@ -311,16 +311,16 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     completedText: { textDecorationLine: 'line-through', color: colors.textSecondary },
     leftAction: {
       flex: 1, backgroundColor: colors.success, justifyContent: 'center', alignItems: 'flex-start',
-      paddingLeft: 24, marginBottom: 10, borderRadius: BORDER.radiusLg,
+      paddingLeft: 24, marginBottom: 10, borderRadius: 16,
     },
     rightAction: {
       flex: 1, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'flex-end',
-      paddingRight: 24, marginBottom: 10, borderRadius: BORDER.radiusLg,
+      paddingRight: 24, marginBottom: 10, borderRadius: 16,
     },
     actionText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: SIZES.sm, marginTop: 4 },
     emptyCard: {
-      backgroundColor: colors.surface, borderRadius: BORDER.radiusLg,
-      padding: 16, borderWidth: 1, borderColor: colors.border, ...SHADOWS.light,
+      backgroundColor: colors.surface, borderRadius: 16,
+      padding: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...SHADOWS.light,
     },
     emptyText: { fontFamily: FONTS.medium, fontSize: SIZES.sm, color: colors.textSecondary },
   });

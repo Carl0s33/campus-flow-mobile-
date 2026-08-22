@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
-import { COLORS, FONTS, SIZES, BORDER } from '@/constants/theme';
+import { FONTS, SIZES, BORDER } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { FormInput } from '@/components/FormInput';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -22,6 +23,9 @@ const PERIOD_FILTERS: { id: string | number; label: string }[] = [
 
 export default function NovaTarefaScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors, isDark);
+  
   const addTask = useCampusStore(state => state.addTask);
   const disciplines = useCampusStore(state => state.disciplines);
   const fetchData = useCampusStore(state => state.fetchData);
@@ -83,7 +87,7 @@ export default function NovaTarefaScreen() {
           {/* FILTRO POR PERÍODO */}
           <View style={styles.formGroup}>
             <View style={styles.labelRow}>
-              <Layers size={16} color={COLORS.primary} />
+              <Layers size={16} color={colors.primary} />
               <Text style={styles.label}>Filtrar por Período</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
@@ -105,7 +109,7 @@ export default function NovaTarefaScreen() {
           {/* SELEÇÃO DE DISCIPLINA */}
           <View style={styles.formGroup}>
             <View style={styles.labelRow}>
-              <BookOpen size={16} color={COLORS.primary} />
+              <BookOpen size={16} color={colors.primary} />
               <Text style={styles.label}>Disciplina ({filteredDisciplines.length} disponíveis)</Text>
             </View>
             {filteredDisciplines.length === 0 ? (
@@ -121,7 +125,7 @@ export default function NovaTarefaScreen() {
                       onPress={() => setDisciplineId(d.id)}
                       activeOpacity={0.8}
                     >
-                      <View style={[styles.colorDot, { backgroundColor: d.color || COLORS.primary }]} />
+                      <View style={[styles.colorDot, { backgroundColor: d.color || colors.primary }]} />
                       <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>{d.name}</Text>
                       {d.code && <Text style={[styles.codeSubtext, isSelected && styles.codeSubtextActive]}>({d.code})</Text>}
                     </TouchableOpacity>
@@ -169,32 +173,32 @@ export default function NovaTarefaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, gap: 20 },
   formGroup: { gap: 8 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: COLORS.textPrimary },
+  label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: colors.textPrimary },
   horizontalScroll: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 4 },
-  hint: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: COLORS.textTertiary, paddingVertical: 8 },
+  hint: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: colors.textTertiary, paddingVertical: 8 },
   periodChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: BORDER.radiusSm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   periodChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   periodChipText: {
     fontFamily: FONTS.medium,
     fontSize: SIZES.xs,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   periodChipTextActive: {
     color: '#FFFFFF',
@@ -206,14 +210,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     gap: 6,
   },
   chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   colorDot: {
     width: 8,
@@ -223,7 +227,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: FONTS.medium,
     fontSize: SIZES.sm,
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   chipTextActive: {
     color: '#FFFFFF',
@@ -232,7 +236,7 @@ const styles = StyleSheet.create({
   codeSubtext: {
     fontFamily: FONTS.regular,
     fontSize: 11,
-    color: COLORS.textTertiary,
+    color: colors.textTertiary,
   },
   codeSubtextActive: {
     color: 'rgba(255,255,255,0.8)',
@@ -241,20 +245,20 @@ const styles = StyleSheet.create({
   typeChip: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: BORDER.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     alignItems: 'center',
   },
   typeChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   typeChipText: {
     fontFamily: FONTS.semiBold,
     fontSize: SIZES.sm,
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   typeChipTextActive: {
     color: '#FFFFFF',

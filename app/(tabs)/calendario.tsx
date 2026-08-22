@@ -174,14 +174,14 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     slotRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
     timeColumn: {
       width: 60, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
-      paddingVertical: 12, borderRadius: BORDER.radiusLg, borderWidth: 1, borderColor: colors.border, ...SHADOWS.light,
+      paddingVertical: 12, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...SHADOWS.light,
     },
     timeStartText: { fontFamily: FONTS.bold, fontSize: SIZES.xs, color: colors.textPrimary },
     timeDividerLine: { width: 1, height: 12, backgroundColor: colors.border, marginVertical: 4 },
     timeEndText: { fontFamily: FONTS.medium, fontSize: 10, color: colors.textSecondary },
     postItCard: {
-      flex: 1, borderRadius: BORDER.radiusLg, padding: 18,
-      borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', ...SHADOWS.postIt,
+      flex: 1, borderRadius: 16, padding: 18,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.08)', ...SHADOWS.postIt,
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     pinDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.25)' },
@@ -197,8 +197,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     },
     metaText: { fontFamily: FONTS.semiBold, fontSize: SIZES.xs },
     emptyCard: {
-      backgroundColor: colors.surface, borderRadius: BORDER.radiusLg, padding: 24,
-      borderWidth: 1, borderColor: colors.border, alignItems: 'center', gap: 10, ...SHADOWS.postIt,
+      backgroundColor: colors.surface, borderRadius: 16, padding: 24,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', gap: 10, ...SHADOWS.postIt,
     },
     emptyTitle: { fontFamily: FONTS.bold, fontSize: SIZES.lg, color: colors.textPrimary },
     emptySubtext: { fontFamily: FONTS.regular, fontSize: SIZES.sm, color: colors.textSecondary, textAlign: 'center' },

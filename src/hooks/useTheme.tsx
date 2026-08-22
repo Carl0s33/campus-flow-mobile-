@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useColorScheme } from 'react-native';
 import { getColors, COLORS } from '@/constants/theme';
 
 interface ThemeContextType {
@@ -21,7 +22,13 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
+  const systemColorScheme = useColorScheme(); // 'dark' | 'light' | null
+  const [isDark, setIsDark] = useState(systemColorScheme === 'dark');
+
+  // Sincroniza com mudanças no tema do sistema
+  useEffect(() => {
+    setIsDark(systemColorScheme === 'dark');
+  }, [systemColorScheme]);
 
   const toggleTheme = () => setIsDark(prev => !prev);
 
@@ -29,10 +36,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const colors = {
     ...baseColors,
     matteYellow: '#FBBF24',
-    matteGreen: '#34D399',
-    matteBlue: '#60A5FA',
+    matteGreen: isDark ? '#34D399' : '#10B981',
+    matteBlue: isDark ? '#60A5FA' : '#3B82F6',
     mattePink: '#F472B6',
-    mattePurple: '#A78BFA',
+    mattePurple: isDark ? '#A78BFA' : '#8B5CF6',
     matteOrange: '#FB923C',
   };
 

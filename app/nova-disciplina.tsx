@@ -2,20 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
-import { COLORS, FONTS, SIZES } from '@/constants/theme';
-import { Discipline } from '@/types/campus';
+import { FONTS, SIZES, MATTE_COLORS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { FormInput } from '@/components/FormInput';
 import { PrimaryButton } from '@/components/PrimaryButton';
 
 export default function NovaDisciplinaScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors);
+  
   const addDiscipline = useCampusStore(state => state.addDiscipline);
 
   const [name, setName] = useState('');
   const [teacher, setTeacher] = useState('');
   const [workload, setWorkload] = useState('');
-  const [color, setColor] = useState(COLORS.primaryLight);
+  const presetColors = MATTE_COLORS;
+  const [color, setColor] = useState(presetColors[0]);
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -39,8 +43,6 @@ export default function NovaDisciplinaScreen() {
       setLoading(false);
     }
   };
-
-  const presetColors = [COLORS.primaryLight, COLORS.accentPurple, COLORS.accentGreen, COLORS.accentOrange, COLORS.accentRedLight, COLORS.accentGray];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -94,13 +96,15 @@ export default function NovaDisciplinaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 20, gap: 24 },
-  formGroup: { gap: 8 },
-  label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: COLORS.textPrimary },
-  colorRow: { flexDirection: 'row', gap: 12 },
-  colorCircle: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: 'transparent' },
-  colorCircleSelected: { borderColor: COLORS.primaryDark },
-});
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 20, gap: 24 },
+    formGroup: { gap: 8 },
+    label: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: colors.textPrimary },
+    colorRow: { flexDirection: 'row', gap: 12 },
+    colorCircle: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: 'transparent' },
+    colorCircleSelected: { borderColor: colors.primaryDark },
+  });
+}

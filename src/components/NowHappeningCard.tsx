@@ -135,10 +135,10 @@ export default function NowHappeningCard({
 function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
   return StyleSheet.create({
     card: {
-      borderRadius: 16,
+      borderRadius: 24,
       padding: 24, 
       marginBottom: 24,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: 'rgba(0, 0, 0, 0.08)',
       ...SHADOWS.postIt,
     },
@@ -223,12 +223,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     },
     emptyCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: 24,
       padding: 24,
       marginBottom: 24,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderStyle: 'dashed',
       gap: 12,
       ...SHADOWS.light,
     },

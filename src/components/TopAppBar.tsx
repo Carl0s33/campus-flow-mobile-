@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Menu, Bell, Moon, Sun } from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import { FONTS, SIZES, BORDER, SHADOWS } from '@/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
@@ -14,72 +14,74 @@ interface TopAppBarProps {
   onPressNotification?: () => void;
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 export default function TopAppBar({
   title,
   showGreeting,
   userName = 'Carlos',
   dateStr,
-  onPressMenu,
   onPressNotification,
 }: TopAppBarProps) {
-  const { isDark, toggleTheme, colors } = useTheme();
-
+  const { isDark, colors } = useTheme();
   const styles = makeStyles(colors, isDark);
+  const initials = getInitials(userName);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
         {showGreeting ? (
           <>
+            {/* Avatar com iniciais */}
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+
+            {/* Saudação */}
             <View style={styles.greetingTextCol}>
-              <Text style={styles.greetingTitle}>Olá, {userName}</Text>
-              {dateStr && <Text style={styles.greetingSubtitle}>{dateStr}</Text>}
+              <Text style={styles.greetingTitle} numberOfLines={1}>
+              Olá, {userName.split(' ')[0]}
+              </Text>
+              {dateStr && (
+                <Text style={styles.greetingSubtitle} numberOfLines={1}>
+                  {dateStr}
+                </Text>
+              )}
             </View>
-            <View style={styles.rightRow}>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={toggleTheme}
-                activeOpacity={0.85}
-              >
-                {isDark ? (
-                  <Sun size={18} color={colors.textPrimary} />
-                ) : (
-                  <Moon size={18} color={colors.textPrimary} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={onPressNotification}
-                activeOpacity={0.85}
-              >
-                <Bell size={18} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
+
+            {/* Sino de notificação */}
+            <TouchableOpacity
+              style={styles.bellBtn}
+              onPress={onPressNotification}
+              activeOpacity={0.75}
+            >
+              <Bell size={19} color={colors.textPrimary} strokeWidth={2} />
+              <View style={styles.notifDot} />
+            </TouchableOpacity>
           </>
         ) : (
           <>
-            <View style={styles.leftCol}>
-              <TouchableOpacity style={styles.menuButton} onPress={onPressMenu} activeOpacity={0.85}>
-                <Menu size={22} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.centerCol}>
-              <Text style={styles.title} numberOfLines={1}>{title || 'CampusFlow'}</Text>
+            {/* Título com barra lateral colorida */}
+            <View style={styles.titleWrapper}>
+              <View style={[styles.titleAccent, { backgroundColor: colors.primary }]} />
+              <Text style={styles.title} numberOfLines={1}>
+                {title || 'CampusFlow'}
+              </Text>
             </View>
 
-            <View style={styles.rightRow}>
-              <TouchableOpacity style={styles.actionBtn} onPress={toggleTheme} activeOpacity={0.85}>
-                {isDark ? (
-                  <Sun size={18} color={colors.textPrimary} />
-                ) : (
-                  <Moon size={18} color={colors.textPrimary} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={onPressNotification} activeOpacity={0.85}>
-                <Bell size={18} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
+            {/* Sino de notificação */}
+            <TouchableOpacity
+              style={styles.bellBtn}
+              onPress={onPressNotification}
+              activeOpacity={0.75}
+            >
+              <Bell size={19} color={colors.textPrimary} strokeWidth={2} />
+              <View style={styles.notifDot} />
+            </TouchableOpacity>
           </>
         )}
       </View>
@@ -95,66 +97,90 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
       borderBottomColor: colors.borderLight,
     },
     container: {
-      height: 64,
+      height: 60,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
       backgroundColor: colors.background,
+      gap: 12,
     },
-    leftCol: {
-      width: 84, // Garante simetria perfeita com o lado direito (2 botões de 38px + gap de 8px)
-      alignItems: 'flex-start',
-    },
-    centerCol: {
-      flex: 1,
-      alignItems: 'center',
+
+    // ─── Greeting Mode ──────────────────────────────────
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary,
       justifyContent: 'center',
+      alignItems: 'center',
+      flexShrink: 0,
     },
-    menuButton: {
-      padding: 6,
+    avatarText: {
+      fontFamily: FONTS.bold,
+      fontSize: 15,
+      color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
+    greetingTextCol: {
+      flex: 1,
+      justifyContent: 'center',
+      gap: 1,
+    },
+    greetingTitle: {
+      fontSize: SIZES.lg,
+      fontFamily: FONTS.bold,
+      color: colors.textPrimary,
+      letterSpacing: -0.3,
+    },
+    greetingSubtitle: {
+      fontSize: 11,
+      fontFamily: FONTS.medium,
+      color: colors.textSecondary,
+      textTransform: 'capitalize',
+    },
+
+    // ─── Title Mode ─────────────────────────────────────
+    titleWrapper: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    titleAccent: {
+      width: 4,
+      height: 22,
+      borderRadius: 2,
     },
     title: {
       fontSize: SIZES.lg,
       color: colors.textPrimary,
       fontFamily: FONTS.bold,
       letterSpacing: -0.3,
-      textAlign: 'center',
     },
-    greetingTextCol: {
-      justifyContent: 'center',
-      gap: 2,
-      flex: 1,
-    },
-    greetingTitle: {
-      fontSize: SIZES.xl,
-      fontFamily: FONTS.bold,
-      color: colors.textPrimary,
-      letterSpacing: -0.4,
-    },
-    greetingSubtitle: {
-      fontSize: SIZES.xs,
-      fontFamily: FONTS.medium,
-      color: colors.textSecondary,
-      textTransform: 'capitalize',
-    },
-    rightRow: {
-      width: 84,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      gap: 8,
-    },
-    actionBtn: {
-      width: 38,
-      height: 38,
+
+    // ─── Bell ────────────────────────────────────────────
+    bellBtn: {
+      width: 40,
+      height: 40,
       backgroundColor: colors.surface,
       borderRadius: BORDER.radiusMd,
       borderWidth: 1,
       borderColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
+      flexShrink: 0,
       ...SHADOWS.light,
+    },
+    notifDot: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: colors.danger,
+      borderWidth: 1.5,
+      borderColor: colors.background,
     },
   });
 }

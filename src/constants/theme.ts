@@ -1,41 +1,41 @@
 // ─── PALETA LIGHT MODE ────────────────────────────────────────────────────────
 export const LIGHT_COLORS = {
-  primary: '#4F46E5',
-  primaryDark: '#3730A3',
-  primaryLight: '#E0E7FF',
-  background: '#F4F5F8',
+  primary: '#2F9E41', // Verde IFRN
+  primaryDark: '#227E31',
+  primaryLight: '#D2F0D8',
+  background: '#F8FAFC', // Cinza Gelo / Cool Slate
   surface: '#FFFFFF',
-  textPrimary: '#111827',
-  textSecondary: '#374151',
-  textTertiary: '#6B7280',
-  border: '#D1D5DB',
-  borderLight: '#E5E7EB',
-  danger: '#EF4444',
-  success: '#10B981',
-  cardOverlay: 'rgba(17,24,39,0.07)',
-  chipBg: 'rgba(17,24,39,0.06)',
-  pinDot: 'rgba(17,24,39,0.25)',
+  textPrimary: '#1A1C20', // Soft black
+  textSecondary: '#64748B', // Slate gray
+  textTertiary: '#A0A4A8',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  danger: '#E91429',
+  success: '#2F9E41',
+  cardOverlay: 'rgba(0,0,0,0.03)',
+  chipBg: 'rgba(47,158,65,0.08)',
+  pinDot: 'rgba(47,158,65,0.3)',
   tabBar: '#FFFFFF',
 };
 
 // ─── PALETA DARK MODE ─────────────────────────────────────────────────────────
 export const DARK_COLORS = {
-  primary: '#818CF8',
-  primaryDark: '#6366F1',
-  primaryLight: '#1E1B4B',
-  background: '#0A0A0A',
-  surface: '#1C1C1E',
-  textPrimary: '#F9FAFB',
-  textSecondary: '#9CA3AF',
-  textTertiary: '#6B7280',
-  border: '#2D2D2F',
-  borderLight: '#232325',
-  danger: '#F87171',
-  success: '#34D399',
-  cardOverlay: 'rgba(255,255,255,0.08)',
-  chipBg: 'rgba(255,255,255,0.07)',
+  primary: '#2F9E41', // Verde IFRN
+  primaryDark: '#45C259', // Lighter green for dark mode pop
+  primaryLight: '#185B22',
+  background: '#121212', // Material Dark
+  surface: '#1E1E1E', // Material Surface
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A0A4A8', // Gray
+  textTertiary: '#64748B',
+  border: '#333333',
+  borderLight: '#1E1E1E',
+  danger: '#E91429',
+  success: '#45C259',
+  cardOverlay: 'rgba(255,255,255,0.03)',
+  chipBg: 'rgba(255,255,255,0.05)',
   pinDot: 'rgba(255,255,255,0.3)',
-  tabBar: '#111111',
+  tabBar: '#121212',
 };
 
 // ─── FUNÇÃO SELETORA DE COR DE TEXTO PARA CONSTRASTE GARANTIDO ────────────────
@@ -82,12 +82,12 @@ export const COLORS = {
 };
 
 export const MATTE_COLORS = [
-  '#FBBF24',
-  '#34D399',
-  '#60A5FA',
-  '#F472B6',
-  '#A78BFA',
-  '#FB923C',
+  '#F59E0B', // Amber
+  '#10B981', // Emerald
+  '#3B82F6', // Blue
+  '#EC4899', // Pink
+  '#8B5CF6', // Violet
+  '#F97316', // Orange
 ];
 
 // ─── TIPOGRAFIA ───────────────────────────────────────────────────────────────
@@ -109,39 +109,39 @@ export const FONTS = {
 };
 
 export const BORDER = {
-  radiusSm: 8,
-  radiusMd: 10,
-  radiusLg: 12,
+  radiusSm: 12,
+  radiusMd: 16,
+  radiusLg: 20,
   width: 1,
 };
 
 export const SHADOWS = {
   postIt: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 4,
   },
   light: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   hardSmall: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
   },
   hardMedium: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 5,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
     elevation: 5,
   },
 };

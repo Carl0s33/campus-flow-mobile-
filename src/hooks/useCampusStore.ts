@@ -7,6 +7,9 @@ import { disciplineApi, scheduleApi, taskApi, examApi, DisciplineDTO, TaskDTO, E
 interface CampusState {
   userName: string;
   matricula: string;
+  email: string;
+  photoUrl: string | null;
+  isAuthenticated: boolean;
   disciplines: Discipline[];
   schedules: Schedule[];
   tasks: Task[];
@@ -15,7 +18,14 @@ interface CampusState {
   isSyncing: boolean;
   error: string | null;
   pendingPomodoros: { type: 'task' | 'discipline'; id: string }[];
-  
+
+  // Ações de autenticação
+  setUserName: (name: string) => void;
+  setMatricula: (matricula: string) => void;
+  login: (name: string, matricula: string, email?: string, photoUrl?: string | null) => void;
+  setPhotoUrl: (url: string | null) => void;
+  logout: () => void;
+
   // Ações de fila
   removePendingPomodoro: (index: number) => void;
   
@@ -112,6 +122,9 @@ export const useCampusStore = create<CampusState>()(
     (set, get) => ({
       userName: 'Carlos Eduardo',
       matricula: '20241134040016',
+      email: '',
+      photoUrl: null,
+      isAuthenticated: false,
       disciplines: ALL_TADS_DISCIPLINES,
       schedules: [],
       tasks: [],
@@ -120,6 +133,14 @@ export const useCampusStore = create<CampusState>()(
       isSyncing: false,
       error: null,
       pendingPomodoros: [],
+
+      // Ações de autenticação
+      setUserName: (name: string) => set({ userName: name }),
+      setMatricula: (matricula: string) => set({ matricula }),
+      login: (name: string, matricula: string, email?: string, photoUrl?: string | null) =>
+        set({ userName: name, matricula, email: email || '', photoUrl: photoUrl || null, isAuthenticated: true }),
+      setPhotoUrl: (url: string | null) => set({ photoUrl: url }),
+      logout: () => set({ isAuthenticated: false, userName: '', matricula: '', email: '', photoUrl: null }),
 
       removePendingPomodoro: (index: number) => {
         set((state) => {

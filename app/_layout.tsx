@@ -8,10 +8,14 @@ import { View, ActivityIndicator } from 'react-native';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { useTheme } from '@/hooks/useTheme';
 import { StatusBar } from 'expo-status-bar';
+import LoginScreen from './login';
 
 function AppContent() {
   const { isDark } = useTheme();
-  
+  const isAuthenticated = useCampusStore(state => state.isAuthenticated);
+  const login = useCampusStore(state => state.login);
+  const userName = useCampusStore(state => state.userName);
+  const matricula = useCampusStore(state => state.matricula);
   const pendingPomodoros = useCampusStore(state => state.pendingPomodoros);
   const removePendingPomodoro = useCampusStore(state => state.removePendingPomodoro);
 
@@ -21,7 +25,6 @@ function AppContent() {
       if (state.isConnected && pendingPomodoros.length > 0) {
         console.log(`📡 Rede detectada. Processando ${pendingPomodoros.length} pomodoros offline...`);
         const processQueue = async () => {
-          // Processa sequencialmente
           for (let i = 0; i < pendingPomodoros.length; i++) {
             const item = pendingPomodoros[i];
             try {
@@ -30,11 +33,10 @@ function AppContent() {
               } else if (item.type === 'discipline') {
                 await disciplineApi.incrementPomodoro(item.id);
               }
-              // Sempre remove o índice 0 pois a fila diminui a cada deleção
-              removePendingPomodoro(0); 
+              removePendingPomodoro(0);
             } catch (e) {
               console.warn(`⚠️ Erro no background sync de pomodoro (${item.type}):`, e);
-              break; // Para o processamento em caso de erro (provavelmente a rede caiu novamente)
+              break;
             }
           }
         };
@@ -44,6 +46,16 @@ function AppContent() {
 
     return () => unsubscribe();
   }, [pendingPomodoros, removePendingPomodoro]);
+
+  // Mostra tela de login se não autenticado
+  if (!isAuthenticated) {
+    return (
+      <>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <LoginScreen onLoginSuccess={() => {}} />
+      </>
+    );
+  }
 
   return (
     <>
