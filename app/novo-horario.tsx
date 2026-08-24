@@ -241,27 +241,62 @@ export default function NovoHorarioScreen() {
 
           {/* HORÁRIOS */}
           <View style={styles.row}>
-            <View style={styles.flex}>
-               <Text style={styles.label}>Início</Text>
-               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowPicker('start')}>
-                 <Text style={styles.pickerBtnText}>{formatTime(startTime)}</Text>
-               </TouchableOpacity>
-            </View>
-            <View style={styles.flex}>
-               <Text style={styles.label}>Fim</Text>
-               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowPicker('end')}>
-                 <Text style={styles.pickerBtnText}>{formatTime(endTime)}</Text>
-               </TouchableOpacity>
-            </View>
+            {Platform.OS === 'web' ? (
+              <>
+                <FormInput
+                  wrapperStyle={styles.flex}
+                  label="Início"
+                  placeholder="08:00"
+                  value={formatTime(startTime)}
+                  onChangeText={(txt) => {
+                    if (txt.includes(':')) {
+                      const [h, m] = txt.split(':');
+                      const d = new Date(startTime);
+                      d.setHours(Number(h) || 0, Number(m) || 0);
+                      setStartTime(d);
+                    }
+                  }}
+                />
+                <FormInput
+                  wrapperStyle={styles.flex}
+                  label="Fim"
+                  placeholder="09:40"
+                  value={formatTime(endTime)}
+                  onChangeText={(txt) => {
+                    if (txt.includes(':')) {
+                      const [h, m] = txt.split(':');
+                      const d = new Date(endTime);
+                      d.setHours(Number(h) || 0, Number(m) || 0);
+                      setEndTime(d);
+                    }
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <View style={styles.flex}>
+                   <Text style={styles.label}>Início</Text>
+                   <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowPicker('start')}>
+                     <Text style={styles.pickerBtnText}>{formatTime(startTime)}</Text>
+                   </TouchableOpacity>
+                </View>
+                <View style={styles.flex}>
+                   <Text style={styles.label}>Fim</Text>
+                   <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowPicker('end')}>
+                     <Text style={styles.pickerBtnText}>{formatTime(endTime)}</Text>
+                   </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
           
-          {showPicker && (
+          {showPicker && DateTimePicker && (
             <DateTimePicker
               value={showPicker === 'start' ? startTime : endTime}
               mode="time"
               is24Hour={true}
               display="default"
-              onChange={(event, selectedDate) => {
+              onChange={(event: any, selectedDate: Date | undefined) => {
                 setShowPicker(null);
                 if (selectedDate) {
                   if (showPicker === 'start') setStartTime(selectedDate);
