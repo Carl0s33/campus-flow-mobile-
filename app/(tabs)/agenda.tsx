@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshCon
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import TopAppBar from '@/components/TopAppBar';
-import { MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS } from '@/constants/theme';
+import { MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '@/constants/theme';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useTheme } from '@/hooks/useTheme';
 import { Clock, Plus, CheckCircle2, Circle, Trash2 } from 'lucide-react-native';
@@ -82,6 +82,11 @@ export default function AgendaScreen() {
     </TouchableOpacity>
   );
 
+  const getFilterCount = (type: string) => {
+    if (type === 'todos') return tasks.length;
+    return tasks.filter(t => t.type === type).length;
+  };
+
   const styles = makeStyles(colors, isDark);
 
   return (
@@ -104,7 +109,8 @@ export default function AgendaScreen() {
         {/* Filter Pills */}
         <View style={styles.filterRow}>
           {FILTER_OPTIONS.map(opt => {
-            const countText = opt.key === 'todos' ? `Todas (${tasks.length})` : opt.label;
+            const count = getFilterCount(opt.key);
+            const countText = `${opt.label} (${count})`;
             return (
               <TouchableOpacity
                 key={opt.key}
@@ -130,6 +136,7 @@ export default function AgendaScreen() {
             thisWeekTasks.map((task, idx) => {
               const disc = disciplines.find(d => d.id === task.disciplineId);
               const matteColor = disc?.color || MATTE_COLORS[idx % MATTE_COLORS.length];
+              const cardTextColor = getContrastTextColor(matteColor);
               return (
                 <Swipeable
                   key={task.id}
@@ -139,35 +146,35 @@ export default function AgendaScreen() {
                 >
                   <TouchableOpacity activeOpacity={0.9} onPress={() => toggleTask(task.id)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
                     <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleTask(task.id); }} style={styles.checkboxTouch}>
-                      <Circle size={22} color="#111827" />
+                      <Circle size={22} color={cardTextColor} />
                     </TouchableOpacity>
                     <View style={styles.taskMainInfo}>
-                      <Text style={styles.taskTitle}>{task.title}</Text>
+                      <Text style={[styles.taskTitle, { color: cardTextColor }]}>{task.title}</Text>
                       <View style={{ flexDirection: 'row', gap: 6 }}>
-                        <View style={styles.subjectTag}>
-                          <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                        <View style={[styles.subjectTag, { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
+                          <Text style={[styles.subjectTagText, { color: cardTextColor }]}>{disc?.code || 'Geral'}</Text>
                         </View>
                         {task.pomodoroCount !== undefined && task.pomodoroCount > 0 && (
-                          <View style={[styles.subjectTag, { backgroundColor: 'rgba(255,255,255,0.4)' }]}>
-                            <Text style={styles.subjectTagText}>{task.pomodoroCount} ciclos</Text>
+                          <View style={[styles.subjectTag, { backgroundColor: 'rgba(0,0,0,0.15)' }]}>
+                            <Text style={[styles.subjectTagText, { color: cardTextColor }]}>{task.pomodoroCount} ciclos</Text>
                           </View>
                         )}
                       </View>
                     </View>
                     <View style={styles.rightActionCol}>
                       <View style={styles.dueCol}>
-                        <Clock size={13} color={isDueToday(task.dueDate) ? "#EF4444" : "#374151"} />
-                        <Text style={isDueToday(task.dueDate) ? styles.dueDateUrgent : styles.dueDateNormal}>
+                        <Clock size={13} color={isDueToday(task.dueDate) ? "#EF4444" : cardTextColor} />
+                        <Text style={isDueToday(task.dueDate) ? styles.dueDateUrgent : [styles.dueDateNormal, { color: cardTextColor }]}>
                           {formatDueDate(task.dueDate)}
                         </Text>
                       </View>
                       <TouchableOpacity
-                        style={styles.pomodoroPlayBtn}
+                        style={[styles.pomodoroPlayBtn, { backgroundColor: 'rgba(0,0,0,0.1)' }]}
                         onPress={(e) => { e.stopPropagation(); handleOpenPomodoro(task.id, task.title); }}
                         activeOpacity={0.8}
                       >
-                        <Play size={14} color="#111827" fill="#111827" />
-                        <Text style={styles.pomodoroPlayBtnText}>Foco</Text>
+                        <Play size={14} color={cardTextColor} fill={cardTextColor} />
+                        <Text style={[styles.pomodoroPlayBtnText, { color: cardTextColor }]}>Foco</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -188,6 +195,7 @@ export default function AgendaScreen() {
             laterTasks.map((task, idx) => {
               const disc = disciplines.find(d => d.id === task.disciplineId);
               const matteColor = disc?.color || MATTE_COLORS[(idx + 2) % MATTE_COLORS.length];
+              const cardTextColor = getContrastTextColor(matteColor);
               return (
                 <Swipeable
                   key={task.id}
@@ -197,35 +205,35 @@ export default function AgendaScreen() {
                 >
                   <TouchableOpacity activeOpacity={0.9} onPress={() => toggleTask(task.id)} style={[styles.taskMatteCard, { backgroundColor: matteColor }]}>
                     <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleTask(task.id); }} style={styles.checkboxTouch}>
-                      <Circle size={22} color="#111827" />
+                      <Circle size={22} color={cardTextColor} />
                     </TouchableOpacity>
                     <View style={styles.taskMainInfo}>
-                      <Text style={styles.taskTitle}>{task.title}</Text>
+                      <Text style={[styles.taskTitle, { color: cardTextColor }]}>{task.title}</Text>
                       <View style={{ flexDirection: 'row', gap: 6 }}>
-                        <View style={styles.subjectTag}>
-                          <Text style={styles.subjectTagText}>{disc?.code || 'Geral'}</Text>
+                        <View style={[styles.subjectTag, { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
+                          <Text style={[styles.subjectTagText, { color: cardTextColor }]}>{disc?.code || 'Geral'}</Text>
                         </View>
                         {task.pomodoroCount !== undefined && task.pomodoroCount > 0 && (
-                          <View style={[styles.subjectTag, { backgroundColor: 'rgba(255,255,255,0.4)' }]}>
-                            <Text style={styles.subjectTagText}>{task.pomodoroCount} ciclos</Text>
+                          <View style={[styles.subjectTag, { backgroundColor: 'rgba(0,0,0,0.15)' }]}>
+                            <Text style={[styles.subjectTagText, { color: cardTextColor }]}>{task.pomodoroCount} ciclos</Text>
                           </View>
                         )}
                       </View>
                     </View>
                     <View style={styles.rightActionCol}>
                       <View style={styles.dueCol}>
-                        <Clock size={13} color={isDueToday(task.dueDate) ? "#EF4444" : "#374151"} />
-                        <Text style={isDueToday(task.dueDate) ? styles.dueDateUrgent : styles.dueDateNormal}>
+                        <Clock size={13} color={isDueToday(task.dueDate) ? "#EF4444" : cardTextColor} />
+                        <Text style={isDueToday(task.dueDate) ? styles.dueDateUrgent : [styles.dueDateNormal, { color: cardTextColor }]}>
                           {formatDueDate(task.dueDate)}
                         </Text>
                       </View>
                       <TouchableOpacity
-                        style={styles.pomodoroPlayBtn}
+                        style={[styles.pomodoroPlayBtn, { backgroundColor: 'rgba(0,0,0,0.1)' }]}
                         onPress={(e) => { e.stopPropagation(); handleOpenPomodoro(task.id, task.title); }}
                         activeOpacity={0.8}
                       >
-                        <Play size={14} color="#111827" fill="#111827" />
-                        <Text style={styles.pomodoroPlayBtnText}>Foco</Text>
+                        <Play size={14} color={cardTextColor} fill={cardTextColor} />
+                        <Text style={[styles.pomodoroPlayBtnText, { color: cardTextColor }]}>Foco</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -305,7 +313,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     dueCol: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     dueDateUrgent: { fontFamily: FONTS.bold, fontSize: SIZES.xs, color: '#EF4444' },
     dueDateNormal: { fontFamily: FONTS.medium, fontSize: SIZES.xs, color: '#374151' },
-    pomodoroPlayBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999 },
+    pomodoroPlayBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999 },
     pomodoroPlayBtnText: { fontFamily: FONTS.bold, fontSize: 10, color: '#111827' },
     completedCard: { backgroundColor: colors.surface, opacity: 0.65 },
     completedText: { textDecorationLine: 'line-through', color: colors.textSecondary },

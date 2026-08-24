@@ -45,11 +45,13 @@ export default function HomeScreen() {
       .filter(s => s.dayOfWeek === today)
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-    // Assume current time is 08:00 for the mockup
-    return todaySchedules.find(s => s.startTime >= '08:00') || null;
+    const nowStr = new Date().toTimeString().slice(0, 5);
+    return todaySchedules.find(s => s.endTime > nowStr) || null;
   };
 
   const currentClass = getNextClass();
+  const nowStr = new Date().toTimeString().slice(0, 5);
+  const isCurrentClass = currentClass ? currentClass.startTime <= nowStr : false;
 
   React.useEffect(() => {
     requestNotificationPermissions().then((granted) => {
@@ -124,7 +126,7 @@ export default function HomeScreen() {
           endTime={currentClass?.endTime}
           room={currentClass?.room}
           teacher={currentDiscipline?.teacher}
-          isCurrent={Boolean(currentClass)}
+          isCurrent={isCurrentClass}
           color={currentDiscipline?.color}
           onPressDetails={() => router.push('/(tabs)/calendario')}
           onPressAdd={() => router.push('/nova-disciplina')}
