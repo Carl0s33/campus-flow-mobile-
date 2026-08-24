@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Calendar, BookOpen, CheckSquare } from 'lucide-react-native';
+import { Home, Calendar, BookOpen, CheckSquare, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FONTS } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -62,6 +62,13 @@ export default function TabsLayout() {
         options={{
           title: 'Tarefas',
           tabBarIcon: ({ color }) => <CheckSquare size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => <User size={22} color={color} />,
         }}
       />
     </Tabs>

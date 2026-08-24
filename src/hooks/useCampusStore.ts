@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Discipline, Schedule, Task, Exam } from '@/types/campus';
 import { disciplineApi, scheduleApi, taskApi, examApi, DisciplineDTO, TaskDTO, ExamDTO, ScheduleDTO } from '@/services/api';
+import { generateDisciplineColor } from '@/utils/colorHelpers';
 
 interface CampusState {
   userName: string;
@@ -65,7 +66,7 @@ function dtoToDiscipline(dto: DisciplineDTO): Discipline {
     name: dto.name,
     code: dto.code || undefined,
     teacher: dto.teacher || undefined,
-    color: dto.color || '#60A5FA',
+    color: dto.color || generateDisciplineColor(dto.id || ''),
     absences: dto.absences ?? 0,
     workload: dto.workload ?? 60,
     period: dto.period,

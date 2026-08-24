@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import { FONTS, SIZES, BORDER } from '@/constants/theme';
@@ -9,6 +9,8 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { FormInput } from '@/components/FormInput';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { BookOpen, Layers, GraduationCap, Info } from 'lucide-react-native';
+
+const DateTimePicker = Platform.OS === 'web' ? null : require('@react-native-community/datetimepicker').default;
 
 const DAYS = [
   { label: 'Segunda', val: 1 },
@@ -39,6 +41,7 @@ export default function NovoHorarioScreen() {
   const addSchedule = useCampusStore(state => state.addSchedule);
   const updateDiscipline = useCampusStore(state => state.updateDiscipline);
   const disciplines = useCampusStore(state => state.disciplines);
+  const schedules = useCampusStore(state => state.schedules);
   const fetchData = useCampusStore(state => state.fetchData);
 
   React.useEffect(() => {
@@ -49,10 +52,17 @@ export default function NovoHorarioScreen() {
   const [disciplineId, setDisciplineId] = useState('');
   const [teacher, setTeacher] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState(1);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startTime, setStartTime] = useState(new Date(new Date().setHours(8, 0, 0, 0)));
+  const [endTime, setEndTime] = useState(new Date(new Date().setHours(9, 40, 0, 0)));
+  const [showPicker, setShowPicker] = useState<'start' | 'end' | null>(null);
   const [room, setRoom] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const formatTime = (date: Date) => {
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  };
 
   // Filtragem de disciplinas por período
   const filteredDisciplines = disciplines.filter(d => {
@@ -70,36 +80,61 @@ export default function NovoHorarioScreen() {
   };
 
   const handleSave = async () => {
-    if (!disciplineId || !startTime || !endTime || !room.trim() || loading) return;
+    if (!disciplineId || !room.trim() || loading) return;
 
-    setLoading(true);
-    try {
-      // 1. Atualizar o professor da disciplina caso tenha sido informado ou alterado
-      const chosen = disciplines.find(d => d.id === disciplineId);
-      if (chosen && teacher.trim() !== (chosen.teacher || '')) {
-        await updateDiscipline(disciplineId, { teacher: teacher.trim() || undefined });
+    const startStr = formatTime(startTime);
+    const endStr = formatTime(endTime);
+
+    const hasConflict = schedules.some(s => 
+      s.dayOfWeek === dayOfWeek && 
+      (
+        (startStr >= s.startTime && startStr < s.endTime) ||
+        (endStr > s.startTime && endStr <= s.endTime) ||
+        (startStr <= s.startTime && endStr >= s.endTime)
+      )
+    );
+
+    const doSave = async () => {
+      setLoading(true);
+      try {
+        const chosen = disciplines.find(d => d.id === disciplineId);
+        if (chosen && teacher.trim() !== (chosen.teacher || '')) {
+          await updateDiscipline(disciplineId, { teacher: teacher.trim() || undefined });
+        }
+
+        await addSchedule({
+          disciplineId,
+          dayOfWeek,
+          startTime: startStr,
+          endTime: endStr,
+          room: room.trim(),
+        });
+
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/calendario');
+        }
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // 2. Salvar o novo horário da aula
-      await addSchedule({
-        disciplineId,
-        dayOfWeek,
-        startTime,
-        endTime,
-        room: room.trim(),
-      });
-
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(tabs)/calendario');
-      }
-    } finally {
-      setLoading(false);
+    if (hasConflict) {
+      Alert.alert(
+        'Conflito de Horário',
+        'Já existe uma aula cadastrada que conflita com este horário neste mesmo dia. Deseja salvar mesmo assim?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Salvar Mesmo Assim', style: 'destructive', onPress: doSave }
+        ]
+      );
+    } else {
+      doSave();
     }
   };
 
-  const isFormValid = disciplineId && startTime && endTime && room.trim() && !loading;
+  const isFormValid = disciplineId && room.trim() && !loading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -206,21 +241,35 @@ export default function NovoHorarioScreen() {
 
           {/* HORÁRIOS */}
           <View style={styles.row}>
-            <FormInput
-              wrapperStyle={styles.flex}
-              label="Início"
-              placeholder="08:00"
-              value={startTime}
-              onChangeText={setStartTime}
-            />
-            <FormInput
-              wrapperStyle={styles.flex}
-              label="Fim"
-              placeholder="09:40"
-              value={endTime}
-              onChangeText={setEndTime}
-            />
+            <View style={styles.flex}>
+               <Text style={styles.label}>Início</Text>
+               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowPicker('start')}>
+                 <Text style={styles.pickerBtnText}>{formatTime(startTime)}</Text>
+               </TouchableOpacity>
+            </View>
+            <View style={styles.flex}>
+               <Text style={styles.label}>Fim</Text>
+               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowPicker('end')}>
+                 <Text style={styles.pickerBtnText}>{formatTime(endTime)}</Text>
+               </TouchableOpacity>
+            </View>
           </View>
+          
+          {showPicker && (
+            <DateTimePicker
+              value={showPicker === 'start' ? startTime : endTime}
+              mode="time"
+              is24Hour={true}
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowPicker(null);
+                if (selectedDate) {
+                  if (showPicker === 'start') setStartTime(selectedDate);
+                  else setEndTime(selectedDate);
+                }
+              }}
+            />
+          )}
 
           {/* SALA / BLOCO */}
           <FormInput
@@ -357,4 +406,17 @@ const makeStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
   },
   row: { flexDirection: 'row', gap: 16 },
+  pickerBtn: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: BORDER.radiusSm,
+    padding: 12,
+    marginTop: 6,
+    backgroundColor: colors.surface,
+  },
+  pickerBtnText: {
+    fontFamily: FONTS.medium,
+    fontSize: SIZES.md,
+    color: colors.textPrimary,
+  },
 });

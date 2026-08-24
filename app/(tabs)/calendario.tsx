@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCampusStore } from '@/hooks/useCampusStore';
 import TopAppBar from '@/components/TopAppBar';
 import { COLORS, MATTE_COLORS, FONTS, SIZES, BORDER, SHADOWS, getContrastTextColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { MapPin, Plus, User, Calendar as CalendarIcon } from 'lucide-react-native';
-import { mergeSequentialSchedules } from '@/utils/scheduleHelpers';
+import { MapPin, Plus, User, Calendar as CalendarIcon, Clock } from 'lucide-react-native';
+import { mergeSequentialSchedules, MergedSchedule } from '@/utils/scheduleHelpers';
 
 const DAYS = [
   { label: 'Segunda', short: 'Seg', val: 1 },
@@ -38,7 +38,92 @@ export default function CalendarioScreen() {
 
   const mergedSchedules = mergeSequentialSchedules(daySchedules);
 
+  const matutino = mergedSchedules.filter(s => s.startTime < '12:00');
+  const vespertino = mergedSchedules.filter(s => s.startTime >= '12:00' && s.startTime < '18:00');
+  const noturno = mergedSchedules.filter(s => s.startTime >= '18:00');
+
   const styles = makeStyles(colors, isDark);
+
+  const renderScheduleBlock = (item: MergedSchedule, idx: number) => {
+    const discipline = disciplines.find(d => d.id === item.disciplineId);
+    const period = discipline?.period || 0;
+    const matteColor = discipline?.color || MATTE_COLORS[period % MATTE_COLORS.length];
+    const cardTextColor = getContrastTextColor(matteColor);
+
+    const showDetails = () => {
+      Alert.alert(
+        discipline?.name || 'Disciplina Desconhecida',
+        `Horário: ${item.startTime} - ${item.endTime}\nSala: ${item.room || 'N/A'}\nDocente: ${discipline?.teacher || 'N/A'}`
+      );
+    };
+
+    return (
+      <View key={item.id} style={styles.slotRow}>
+        <View style={styles.timeColumn}>
+          <Text style={styles.timeStartText}>{item.startTime}</Text>
+          <View style={styles.timeDividerLine} />
+          <Text style={styles.timeEndText}>{item.endTime}</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.postItCard, { backgroundColor: matteColor }]}
+          activeOpacity={0.85}
+          onPress={showDetails}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.pinDot} />
+            {discipline?.code && (
+              <View style={styles.codeBadge}>
+                <Text style={[styles.codeBadgeText, { color: cardTextColor }]}>{discipline.code}</Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={[styles.classTitle, { color: cardTextColor }]} numberOfLines={2}>
+            {discipline?.name || 'Disciplina'}
+          </Text>
+
+          {item.isMerged && (
+            <View style={styles.mergedDivider}>
+               {item.midTimes.map(t => (
+                 <Text key={t} style={[styles.mergedDividerText, { color: cardTextColor }]}>--- {t} ---</Text>
+               ))}
+            </View>
+          )}
+
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <MapPin size={12} color={cardTextColor} />
+              <Text style={[styles.metaText, { color: cardTextColor }]}>{item.room || 'Sala N/A'}</Text>
+            </View>
+            {discipline?.teacher && (
+              <View style={styles.metaChip}>
+                <User size={12} color={cardTextColor} />
+                <Text style={[styles.metaText, { color: cardTextColor }]} numberOfLines={1}>
+                  {discipline.teacher}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderSection = (title: string, list: MergedSchedule[]) => {
+    if (list.length === 0) return null;
+    return (
+      <View style={styles.shiftSection}>
+        <View style={styles.shiftHeader}>
+          <Clock size={16} color={colors.textSecondary} />
+          <Text style={styles.shiftTitle}>{title}</Text>
+        </View>
+        <View style={styles.timelineContainer}>
+          {list.map((item, idx) => renderScheduleBlock(item, idx))}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -48,8 +133,8 @@ export default function CalendarioScreen() {
       <View style={styles.headerContainer}>
         <View style={styles.titleRow}>
           <View>
-            <Text style={styles.pageTitle}>Horário Semanal</Text>
-            <Text style={styles.pageSubtitle}>TADS • Período 2026.2 (Matutino)</Text>
+            <Text style={styles.pageTitle}>Grade de Aulas</Text>
+            <Text style={styles.pageSubtitle}>Seus horários organizados por turno</Text>
           </View>
 
           <TouchableOpacity
@@ -65,10 +150,13 @@ export default function CalendarioScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysScroll}>
           {DAYS.map(day => {
             const isActive = day.val === selectedDay;
+            const hasClasses = schedules.some(s => s.dayOfWeek === day.val);
+            const opacity = isActive ? 1 : (hasClasses ? 0.9 : 0.4);
+
             return (
               <TouchableOpacity
                 key={day.val}
-                style={[styles.dayButton, isActive && styles.dayButtonActive]}
+                style={[styles.dayButton, isActive && styles.dayButtonActive, { opacity }]}
                 onPress={() => setSelectedDay(day.val)}
               >
                 <Text style={[styles.dayText, isActive && styles.dayTextActive]}>{day.label}</Text>
@@ -87,8 +175,8 @@ export default function CalendarioScreen() {
         {mergedSchedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <CalendarIcon size={24} color={colors.textSecondary} />
-            <Text style={styles.emptyTitle}>Sem aulas neste dia</Text>
-            <Text style={styles.emptySubtext}>Seu mural de anotações está livre para o dia selecionado.</Text>
+            <Text style={styles.emptyTitle}>Livre neste dia!</Text>
+            <Text style={styles.emptySubtext}>Nenhuma aula ou compromisso agendado para o dia selecionado.</Text>
             <TouchableOpacity
               style={styles.emptyBtn}
               onPress={() => router.push('/novo-horario')}
@@ -99,56 +187,10 @@ export default function CalendarioScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.timelineContainer}>
-            {mergedSchedules.map((item, idx) => {
-              const discipline = disciplines.find(d => d.id === item.disciplineId);
-              const matteColor = discipline?.color || MATTE_COLORS[idx % MATTE_COLORS.length];
-              const cardTextColor = getContrastTextColor(matteColor);
-
-              return (
-                <View key={item.id} style={styles.slotRow}>
-                  <View style={styles.timeColumn}>
-                    <Text style={styles.timeStartText}>{item.startTime}</Text>
-                    <View style={styles.timeDividerLine} />
-                    <Text style={styles.timeEndText}>{item.endTime}</Text>
-                  </View>
-
-                  <View style={[styles.postItCard, { backgroundColor: matteColor }]}>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.pinDot} />
-                      {discipline?.code && (
-                        <View style={styles.codeBadge}>
-                          <Text style={[styles.codeBadgeText, { color: cardTextColor }]}>{discipline.code}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <Text style={[styles.classTitle, { color: cardTextColor }]}>{discipline?.name || 'Disciplina'}</Text>
-
-                    {item.isMerged && (
-                      <View style={styles.mergedDivider}>
-                         {item.midTimes.map(t => (
-                           <Text key={t} style={[styles.mergedDividerText, { color: cardTextColor }]}>--- {t} ---</Text>
-                         ))}
-                      </View>
-                    )}
-
-                    <View style={styles.metaRow}>
-                      <View style={styles.metaChip}>
-                        <MapPin size={12} color={cardTextColor} />
-                        <Text style={[styles.metaText, { color: cardTextColor }]}>{item.room || 'Sala N/A'}</Text>
-                      </View>
-                      {discipline?.teacher && (
-                        <View style={styles.metaChip}>
-                          <User size={12} color={cardTextColor} />
-                          <Text style={[styles.metaText, { color: cardTextColor }]}>{discipline.teacher}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
+          <View style={styles.sectionsContainer}>
+            {renderSection('Matutino', matutino)}
+            {renderSection('Vespertino', vespertino)}
+            {renderSection('Noturno', noturno)}
           </View>
         )}
       </ScrollView>
@@ -170,6 +212,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     dayText: { fontFamily: FONTS.semiBold, fontSize: SIZES.sm, color: colors.textSecondary },
     dayTextActive: { color: '#FFFFFF' },
     scrollContent: { padding: 24, paddingBottom: 110 },
+    sectionsContainer: { gap: 32 },
+    shiftSection: { gap: 16 },
+    shiftHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 4 },
+    shiftTitle: { fontFamily: FONTS.bold, fontSize: SIZES.md, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
     timelineContainer: { gap: 16 },
     slotRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
     timeColumn: {
@@ -186,7 +232,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boole
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     pinDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.25)' },
     codeBadge: { backgroundColor: 'rgba(0,0,0,0.08)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-    codeBadgeText: { fontFamily: FONTS.bold, fontSize: 10 },
+    codeBadgeText: { fontFamily: FONTS.medium, fontSize: 9, opacity: 0.8 },
     classTitle: { fontFamily: FONTS.bold, fontSize: SIZES.md, marginBottom: 10, lineHeight: 22 },
     mergedDivider: { borderTopWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(0,0,0,0.1)', paddingTop: 8, marginTop: 4, marginBottom: 12 },
     mergedDividerText: { fontFamily: FONTS.medium, fontSize: 10, opacity: 0.6, textAlign: 'center' },
